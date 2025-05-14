@@ -1,20 +1,62 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { items } = useCart();
+  const navigate = useNavigate();
   
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    navigate('/');
+  };
+  
+  // Check if user is logged in
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+  
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
-    <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-40">
+    <nav className={`border-b backdrop-blur-md sticky top-0 z-40 transition-all duration-200 ${
+      isScrolled ? 'bg-white/90 shadow-sm' : 'bg-white/80'
+    }`}>
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <div className="bg-nature-500 text-white p-1 rounded">
@@ -49,11 +91,38 @@ const Navbar = () => {
               )}
             </Button>
           </Link>
-          <Link to="/login">
-            <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
-              Đăng nhập
-            </Button>
-          </Link>
+          
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
+                  <User className="w-4 h-4 mr-2" />
+                  Tài khoản
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem>
+                  <Link to="/profile" className="w-full">Thông tin tài khoản</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/orders" className="w-full">Đơn hàng của tôi</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/wishlist" className="w-full">Sản phẩm yêu thích</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
+                Đăng nhập
+              </Button>
+            </Link>
+          )}
         </div>
         
         {/* Mobile Menu Button */}
@@ -83,7 +152,26 @@ const Navbar = () => {
             <Link to="/collections" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Bộ sưu tập</Link>
             <Link to="/care-guide" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Chăm sóc</Link>
             <Link to="/about" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Về chúng tôi</Link>
-            <Link to="/login" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Đăng nhập</Link>
+            
+            {isLoggedIn ? (
+              <>
+                <div className="h-px bg-gray-200 my-1"></div>
+                <Link to="/profile" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Thông tin tài khoản</Link>
+                <Link to="/orders" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Đơn hàng của tôi</Link>
+                <Link to="/wishlist" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Sản phẩm yêu thích</Link>
+                <button 
+                  className="px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-md" 
+                  onClick={() => {
+                    handleLogout();
+                    toggleMenu();
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="px-3 py-2 bg-nature-50 text-nature-700 rounded-md text-center font-medium" onClick={toggleMenu}>Đăng nhập</Link>
+            )}
           </div>
         </div>
       )}
