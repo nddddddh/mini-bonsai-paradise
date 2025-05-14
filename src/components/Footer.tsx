@@ -44,8 +44,8 @@ const Footer = () => {
               <li><Link to="/products" className="text-gray-600 hover:text-nature-600">Tất cả sản phẩm</Link></li>
               <li><Link to="/collections/terrarium" className="text-gray-600 hover:text-nature-600">Terrarium</Link></li>
               <li><Link to="/collections/bonsai" className="text-gray-600 hover:text-nature-600">Cây Bonsai Mini</Link></li>
-              <li><Link to="/collections/succulents" className="text-gray-600 hover:text-nature-600">Sen Đá</Link></li>
-              <li><Link to="/collections/airplants" className="text-gray-600 hover:text-nature-600">Cây Không Khí</Link></li>
+              <li><Link to="/collections/sen-da" className="text-gray-600 hover:text-nature-600">Sen Đá</Link></li>
+              <li><Link to="/collections/cay-khong-khi" className="text-gray-600 hover:text-nature-600">Cây Không Khí</Link></li>
               <li><Link to="/collections/accessories" className="text-gray-600 hover:text-nature-600">Phụ Kiện</Link></li>
             </ul>
           </div>

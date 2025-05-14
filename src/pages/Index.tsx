@@ -22,22 +22,26 @@ const Index = () => {
     {
       name: "Terrarium",
       image: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
-      count: plants.filter(p => p.category === "Terrarium").length
+      count: plants.filter(p => p.category === "Terrarium").length,
+      slug: "terrarium"
     },
     {
       name: "Bonsai",
       image: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80",
-      count: plants.filter(p => p.category === "Bonsai").length
+      count: plants.filter(p => p.category === "Bonsai").length,
+      slug: "bonsai"
     },
     {
       name: "Sen Đá",
       image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80",
-      count: plants.filter(p => p.category === "Sen Đá").length
+      count: plants.filter(p => p.category === "Sen Đá").length,
+      slug: "sen-da"
     },
     {
       name: "Cây Không Khí",
       image: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80",
-      count: plants.filter(p => p.category === "Cây Không Khí").length
+      count: plants.filter(p => p.category === "Cây Không Khí").length,
+      slug: "cay-khong-khi"
     }
   ];
 
@@ -100,7 +104,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {categories.map((category, index) => (
-              <Link to={`/collections/${category.name.toLowerCase().replace(/\s+/g, '-')}`} key={index}>
+              <Link to={`/collections/${category.slug}`} key={index}>
                 <div className="relative rounded-lg overflow-hidden group h-64 shadow-md">
                   <img 
                     src={category.image} 
