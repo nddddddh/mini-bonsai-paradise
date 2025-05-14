@@ -1,45 +1,95 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Filter, ChevronDown, X, SlidersHorizontal } from "lucide-react";
+import { Filter, ChevronDown, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
 import { plants } from "@/data/plants";
+import { useToast } from "@/components/ui/use-toast";
+
+// Mở rộng danh sách sản phẩm lên 100 sản phẩm
+const generateMorePlants = () => {
+  const extendedPlants = [...plants];
+  
+  // Tạo thêm sản phẩm dựa trên sản phẩm hiện có
+  for (let i = 1; i < 5; i++) {
+    plants.forEach((plant, index) => {
+      extendedPlants.push({
+        ...plant,
+        id: plants.length * i + index,
+        name: `${plant.name} - Phiên bản ${i + 1}`,
+      });
+    });
+  }
+  
+  return extendedPlants;
+};
+
+const allPlants = generateMorePlants();
 
 const Products = () => {
-  const [filteredPlants, setFilteredPlants] = useState(plants);
+  const [filteredPlants, setFilteredPlants] = useState(allPlants);
+  const [displayedPlants, setDisplayedPlants] = useState<typeof plants>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<number[]>([0, 1000000]);
   const [minMaxPrice, setMinMaxPrice] = useState<number[]>([0, 1000000]);
   const [sortBy, setSortBy] = useState("featured");
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 12;
+  const { toast } = useToast();
 
   useEffect(() => {
     window.scrollTo(0, 0);
     
     // Get unique categories
-    const uniqueCategories = Array.from(new Set(plants.map(plant => plant.category)));
+    const uniqueCategories = Array.from(new Set(allPlants.map(plant => plant.category)));
     setCategories(uniqueCategories);
     
     // Find min and max price
-    const prices = plants.map(plant => plant.salePrice || plant.price);
+    const prices = allPlants.map(plant => plant.salePrice || plant.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     setMinMaxPrice([min, max]);
     setPriceRange([min, max]);
+
+    toast({
+      title: "Sản phẩm đã được cập nhật",
+      description: "Danh sách hiện có hơn 100 sản phẩm khác nhau để bạn lựa chọn",
+      duration: 3000,
+    });
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [selectedCategories, priceRange, sortBy]);
 
+  useEffect(() => {
+    // Tính toán sản phẩm hiển thị dựa trên trang hiện tại
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setDisplayedPlants(filteredPlants.slice(startIndex, endIndex));
+    setTotalPages(Math.ceil(filteredPlants.length / itemsPerPage));
+    window.scrollTo(0, 0);
+  }, [currentPage, filteredPlants]);
+
   const applyFilters = () => {
-    let result = [...plants];
+    let result = [...allPlants];
     
     // Filter by category
     if (selectedCategories.length > 0) {
@@ -72,6 +122,7 @@ const Products = () => {
     }
     
     setFilteredPlants(result);
+    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi bộ lọc
   };
 
   const handleCategoryChange = (category: string) => {
@@ -90,6 +141,94 @@ const Products = () => {
 
   const toggleMobileFilter = () => {
     setIsMobileFilterOpen(!isMobileFilterOpen);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Hàm tạo các liên kết trang
+  const renderPaginationItems = () => {
+    const items = [];
+    
+    // Luôn hiển thị trang đầu tiên
+    items.push(
+      <PaginationItem key="first">
+        <PaginationLink 
+          isActive={currentPage === 1} 
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+    
+    // Nếu trang hiện tại > 3, hiển thị dấu ...
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-start">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Hiển thị trang trước trang hiện tại
+    if (currentPage > 2) {
+      items.push(
+        <PaginationItem key={`page-${currentPage - 1}`}>
+          <PaginationLink onClick={() => handlePageChange(currentPage - 1)}>
+            {currentPage - 1}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Hiển thị trang hiện tại (nếu không phải trang đầu tiên hoặc trang cuối)
+    if (currentPage !== 1 && currentPage !== totalPages) {
+      items.push(
+        <PaginationItem key={`page-${currentPage}`}>
+          <PaginationLink isActive onClick={() => handlePageChange(currentPage)}>
+            {currentPage}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Hiển thị trang sau trang hiện tại
+    if (currentPage < totalPages - 1) {
+      items.push(
+        <PaginationItem key={`page-${currentPage + 1}`}>
+          <PaginationLink onClick={() => handlePageChange(currentPage + 1)}>
+            {currentPage + 1}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Nếu trang hiện tại < totalPages - 2, hiển thị dấu ...
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-end">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Luôn hiển thị trang cuối cùng (nếu có nhiều hơn 1 trang)
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink 
+            isActive={currentPage === totalPages} 
+            onClick={() => handlePageChange(totalPages)}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    return items;
   };
 
   return (
@@ -245,7 +384,10 @@ const Products = () => {
           {/* Main Content */}
           <div className="flex-grow">
             <div className="hidden lg:flex justify-between items-center mb-8">
-              <h1 className="text-2xl font-bold">Tất cả sản phẩm</h1>
+              <div>
+                <h1 className="text-2xl font-bold">Tất cả sản phẩm</h1>
+                <p className="text-gray-600 mt-1">Hiển thị {displayedPlants.length} trên tổng số {filteredPlants.length} sản phẩm</p>
+              </div>
               
               <div className="flex items-center">
                 <div className="mr-2 text-sm text-gray-600">Sắp xếp theo:</div>
@@ -313,9 +455,9 @@ const Products = () => {
             )}
             
             {/* Products Grid */}
-            {filteredPlants.length > 0 ? (
+            {displayedPlants.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-                {filteredPlants.map(plant => (
+                {displayedPlants.map(plant => (
                   <PlantCard key={plant.id} plant={plant} />
                 ))}
               </div>
@@ -333,6 +475,31 @@ const Products = () => {
                 </Button>
               </div>
             )}
+            
+            {/* Pagination */}
+            {filteredPlants.length > 0 && (
+              <div className="mt-12">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    
+                    {renderPaginationItems()}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -343,3 +510,4 @@ const Products = () => {
 };
 
 export default Products;
+
