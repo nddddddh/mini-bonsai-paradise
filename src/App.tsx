@@ -21,6 +21,7 @@ import CareGuide from "./pages/CareGuide";
 import CareGuideDetail from "./pages/CareGuideDetail";
 import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/care-guide/:slug" element={<CareGuideDetail />} />
             <Route path="/collections" element={<Collections />} />
             <Route path="/collections/:category" element={<CollectionDetail />} />
+            <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
