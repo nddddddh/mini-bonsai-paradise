@@ -54,7 +54,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              Mang <span className="text-nature-600">thiên nhiên</span> vào không gian sống của bạn
+              <span className="text-nature-600">Kết nối đam mê</span>, gieo mầm nghệ thuật
             </h1>
             <p className="text-lg mb-8 text-gray-600">
               Khám phá bộ sưu tập các loại cây cảnh mini độc đáo, được chọn lọc kỹ lưỡng để làm đẹp không gian và thanh lọc không khí.

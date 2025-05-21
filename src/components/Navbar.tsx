@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
@@ -65,7 +64,7 @@ const Navbar = () => {
               <path d="M12 6.5L12.5396 7.83213C13.6676 10.9536 15.6464 13.5864 18.1679 15.4604L19 16L18.1679 16.5396C15.6464 18.4136 13.6676 21.0464 12.5396 24.1679L12 25.5L11.4604 24.1679C10.3324 21.0464 8.35357 18.4136 5.83213 16.5396L5 16L5.83213 15.4604C8.35357 13.5864 10.3324 10.9536 11.4604 7.83213L12 6.5Z" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="font-bold text-xl">MiniPlants</span>
+          <span className="font-bold text-xl">BonsaiHub</span>
         </Link>
         
         {/* Desktop Menu */}
