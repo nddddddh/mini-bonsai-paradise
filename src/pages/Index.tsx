@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -49,13 +50,14 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section with Slogan and Garden Images */}
-      <section className="relative bg-nature-50">
-        <div className="container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
+      <section className="relative bg-cover bg-center bg-no-repeat h-[600px] md:h-[700px]" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')" }}>
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="container mx-auto px-4 py-20 relative z-10 flex flex-col md:flex-row items-center h-full">
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              <span className="text-nature-600">Kết nối đam mê</span>, gieo mầm nghệ thuật
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight text-white">
+              <span className="text-nature-300">Kết nối đam mê</span>, gieo mầm nghệ thuật
             </h1>
-            <p className="text-lg mb-8 text-gray-600">
+            <p className="text-lg mb-8 text-gray-100">
               Khám phá bộ sưu tập các loại cây cảnh mini độc đáo, được chọn lọc kỹ lưỡng để làm đẹp không gian và thanh lọc không khí.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -65,7 +67,7 @@ const Index = () => {
                 </Button>
               </Link>
               <Link to="/care-guide">
-                <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
+                <Button variant="outline" className="border-white text-white hover:bg-white/20">
                   Hướng dẫn chăm sóc
                 </Button>
               </Link>
@@ -76,29 +78,28 @@ const Index = () => {
               <img 
                 src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
                 alt="Khu vườn bonsai" 
-                className="rounded-lg h-24 w-full object-cover"
+                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
               />
               <img 
                 src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
                 alt="Ánh nắng xuyên qua cây" 
-                className="rounded-lg h-24 w-full object-cover"
+                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
               />
               <img 
                 src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
                 alt="Phong cảnh thiên nhiên" 
-                className="rounded-lg h-24 w-full object-cover"
+                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
               />
             </div>
           </div>
-          <div className="md:w-1/2 relative">
-            <img 
-              src="https://images.unsplash.com/photo-1604762510084-bd5d755c6d5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1471&q=80" 
-              alt="Cây cảnh mini trang trí" 
-              className="rounded-lg shadow-2xl w-full object-cover" 
-              style={{ maxHeight: "550px" }}
-            />
-            <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-lg shadow-lg hidden md:block">
-              <div className="flex items-center gap-2">
+          <div className="md:w-1/2 relative hidden md:block">
+            <div className="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md mx-auto">
+              <img 
+                src="https://images.unsplash.com/photo-1604762510084-bd5d755c6d5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1471&q=80" 
+                alt="Cây cảnh mini trang trí" 
+                className="rounded-lg w-full object-cover mb-4"
+              />
+              <div className="flex items-center gap-3 mt-4">
                 <Leaf className="text-nature-500 w-8 h-8" />
                 <div>
                   <p className="font-semibold">100% Cây khỏe mạnh</p>
