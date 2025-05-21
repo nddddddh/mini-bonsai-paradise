@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -199,7 +198,7 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Tại sao chọn MiniPlants?</h2>
+            <h2 className="text-3xl font-bold mb-4">Tại sao chọn BonsaiHub?</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Chúng tôi cam kết mang đến những sản phẩm chất lượng cao và trải nghiệm mua sắm tuyệt vời
             </p>
@@ -258,7 +257,7 @@ const Index = () => {
                 </svg>
               </div>
               <p className="text-xl mb-6 leading-relaxed">
-                Tôi rất hài lòng với các sản phẩm từ MiniPlants. Terrarium tôi mua gần 6 tháng trước vẫn phát triển tốt và tạo điểm nhấn tuyệt vời cho góc làm việc của tôi. Cảm ơn vì những lời khuyên hữu ích về cách chăm sóc.
+                Tôi rất hài lòng với các sản phẩm từ BonsaiHub. Terrarium tôi mua gần 6 tháng trước vẫn phát triển tốt và tạo điểm nhấn tuyệt vời cho góc làm việc của tôi. Cảm ơn vì những lời khuyên hữu ích về cách chăm sóc.
               </p>
               <div>
                 <p className="font-semibold text-lg">Nguyễn Minh Anh</p>

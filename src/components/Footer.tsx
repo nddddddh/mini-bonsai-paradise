@@ -14,7 +14,7 @@ const Footer = () => {
                   <path d="M12 6.5L12.5396 7.83213C13.6676 10.9536 15.6464 13.5864 18.1679 15.4604L19 16L18.1679 16.5396C15.6464 18.4136 13.6676 21.0464 12.5396 24.1679L12 25.5L11.4604 24.1679C10.3324 21.0464 8.35357 18.4136 5.83213 16.5396L5 16L5.83213 15.4604C8.35357 13.5864 10.3324 10.9536 11.4604 7.83213L12 6.5Z" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="font-bold text-xl">MiniPlants</span>
+              <span className="font-bold text-xl">BonsaiHub</span>
             </div>
             <p className="text-gray-600 mb-4">
               Mang vẻ đẹp tự nhiên vào không gian sống của bạn với những loài cây cảnh mini độc đáo.
@@ -76,7 +76,7 @@ const Footer = () => {
                 <svg className="w-5 h-5 text-nature-600 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span className="text-gray-600">contact@miniplants.com</span>
+                <span className="text-gray-600">contact@bonsaihub.com</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-nature-600 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +99,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-200 mt-12 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; 2023 MiniPlants. Tất cả các quyền được bảo lưu.
+            &copy; 2023 BonsaiHub. Tất cả các quyền được bảo lưu.
           </p>
         </div>
       </div>
