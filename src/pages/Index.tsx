@@ -49,7 +49,7 @@ const Index = () => {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       
-      {/* Hero Section */}
+      {/* Hero Section with Slogan and Garden Images */}
       <section className="relative bg-nature-50">
         <div className="container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
@@ -70,6 +70,25 @@ const Index = () => {
                   Hướng dẫn chăm sóc
                 </Button>
               </Link>
+            </div>
+            
+            {/* Garden Image Gallery */}
+            <div className="mt-8 grid grid-cols-3 gap-2">
+              <img 
+                src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
+                alt="Khu vườn bonsai" 
+                className="rounded-lg h-24 w-full object-cover"
+              />
+              <img 
+                src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
+                alt="Ánh nắng xuyên qua cây" 
+                className="rounded-lg h-24 w-full object-cover"
+              />
+              <img 
+                src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
+                alt="Phong cảnh thiên nhiên" 
+                className="rounded-lg h-24 w-full object-cover"
+              />
             </div>
           </div>
           <div className="md:w-1/2 relative">
