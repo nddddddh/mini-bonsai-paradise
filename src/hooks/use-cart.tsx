@@ -1,7 +1,16 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
-import { Plant } from '@/components/PlantCard';
+
+// Legacy Plant interface for backward compatibility
+interface Plant {
+  id: number;
+  name: string;
+  price: number;
+  salePrice?: number;
+  image: string;
+  category: string;
+  stock: number;
+}
 
 interface CartItem extends Plant {
   quantity: number;

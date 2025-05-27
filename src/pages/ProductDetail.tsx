@@ -8,29 +8,30 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
 import { useCart } from "@/hooks/use-cart";
-import { plants } from "@/data/plants";
+import { products } from "@/data/products";
+import { Product } from "@/types/database";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [plant, setPlant] = useState<any>(null);
+  const [plant, setPlant] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [relatedPlants, setRelatedPlants] = useState<any[]>([]);
+  const [relatedPlants, setRelatedPlants] = useState<Product[]>([]);
   const { addItem } = useCart();
 
   useEffect(() => {
     window.scrollTo(0, 0);
     
     if (id) {
-      const product = plants.find(p => p.id === parseInt(id));
+      const product = products.find(p => p.product_id === parseInt(id));
       if (product) {
         setPlant(product);
-        setActiveImage(product.images[0]);
+        setActiveImage(product.images?.[0] || product.image || '');
         
         // Get related plants from same category, excluding current plant
-        const related = plants
-          .filter(p => p.category === product.category && p.id !== product.id)
+        const related = products
+          .filter(p => p.category === product.category && p.product_id !== product.product_id)
           .slice(0, 4);
         setRelatedPlants(related);
       }
@@ -41,15 +42,26 @@ const ProductDetail = () => {
 
   const handleQuantityChange = (amount: number) => {
     const newQuantity = quantity + amount;
-    if (newQuantity >= 1 && newQuantity <= (plant?.stock || 1)) {
+    if (newQuantity >= 1 && newQuantity <= (plant?.stock_quantity || 1)) {
       setQuantity(newQuantity);
     }
   };
 
   const handleAddToCart = () => {
     if (plant) {
+      // Convert Product to Plant format for cart compatibility
+      const plantForCart = {
+        id: plant.product_id,
+        name: plant.name,
+        price: plant.price,
+        salePrice: plant.salePrice,
+        image: plant.image || '',
+        category: plant.category,
+        stock: plant.stock_quantity
+      };
+      
       for (let i = 0; i < quantity; i++) {
-        addItem(plant);
+        addItem(plantForCart);
       }
     }
   };
@@ -114,21 +126,23 @@ const ProductDetail = () => {
                 className="w-full h-96 object-cover"
               />
             </div>
-            <div className="grid grid-cols-4 gap-4">
-              {plant.images.map((image: string, index: number) => (
-                <div 
-                  key={index} 
-                  className={`cursor-pointer rounded-md overflow-hidden border ${activeImage === image ? 'border-nature-600 ring-2 ring-nature-300' : 'border-gray-200'}`}
-                  onClick={() => setActiveImage(image)}
-                >
-                  <img 
-                    src={image} 
-                    alt={`${plant.name} - Hình ${index + 1}`} 
-                    className="w-full h-20 object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+            {plant.images && plant.images.length > 0 && (
+              <div className="grid grid-cols-4 gap-4">
+                {plant.images.map((image: string, index: number) => (
+                  <div 
+                    key={index} 
+                    className={`cursor-pointer rounded-md overflow-hidden border ${activeImage === image ? 'border-nature-600 ring-2 ring-nature-300' : 'border-gray-200'}`}
+                    onClick={() => setActiveImage(image)}
+                  >
+                    <img 
+                      src={image} 
+                      alt={`${plant.name} - Hình ${index + 1}`} 
+                      className="w-full h-20 object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           {/* Product Info */}
@@ -167,8 +181,8 @@ const ProductDetail = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">Số lượng:</span>
-                <span className={`text-sm ${plant.stock < 10 ? 'text-amber-600' : 'text-nature-600'}`}>
-                  {plant.stock < 10 ? `Chỉ còn ${plant.stock} sản phẩm` : 'Còn hàng'}
+                <span className={`text-sm ${plant.stock_quantity < 10 ? 'text-amber-600' : 'text-nature-600'}`}>
+                  {plant.stock_quantity < 10 ? `Chỉ còn ${plant.stock_quantity} sản phẩm` : 'Còn hàng'}
                 </span>
               </div>
               <div className="flex items-center">
@@ -184,7 +198,7 @@ const ProductDetail = () => {
                 </div>
                 <button
                   onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= plant.stock}
+                  disabled={quantity >= plant.stock_quantity}
                   className="border border-gray-300 rounded-r-md p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
@@ -196,9 +210,9 @@ const ProductDetail = () => {
               <Button
                 onClick={handleAddToCart}
                 className="bg-nature-600 hover:bg-nature-700 text-white flex-grow py-6"
-                disabled={plant.stock <= 0}
+                disabled={plant.stock_quantity <= 0}
               >
-                {plant.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                {plant.stock_quantity > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
               </Button>
               <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
                 <Heart className="w-5 h-5" />
