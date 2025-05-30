@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Minus, Plus, Star, Truck, ShieldCheck, Heart } from "lucide-react";
@@ -376,7 +375,7 @@ const ProductDetail = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {relatedPlants.map(plant => (
-              <PlantCard key={plant.id} plant={plant} />
+              <PlantCard key={plant.product_id} plant={plant} />
             ))}
           </div>
         </div>
