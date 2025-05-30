@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           account_id: number
           address: string | null
+          avatar_url: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           account_id?: number
           address?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -37,6 +39,7 @@ export type Database = {
         Update: {
           account_id?: number
           address?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
@@ -105,25 +108,17 @@ export type Database = {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "product_sales"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["product_id"]
           },
         ]
-      }
-      mini_bonsai: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
       }
       order_details: {
         Row: {
@@ -154,6 +149,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_sales"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "order_details_product_id_fkey"
@@ -226,9 +228,70 @@ export type Database = {
         }
         Relationships: []
       }
+      wishlist: {
+        Row: {
+          account_id: number
+          created_at: string | null
+          id: number
+          product_id: number
+        }
+        Insert: {
+          account_id: number
+          created_at?: string | null
+          id?: number
+          product_id: number
+        }
+        Update: {
+          account_id?: number
+          created_at?: string | null
+          id?: number
+          product_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "wishlist_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_sales"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "wishlist_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      product_sales: {
+        Row: {
+          category: string | null
+          name: string | null
+          product_id: number | null
+          total_revenue: number | null
+          total_sold: number | null
+        }
+        Relationships: []
+      }
+      revenue_stats: {
+        Row: {
+          avg_order_value: number | null
+          daily_revenue: number | null
+          order_date: string | null
+          total_orders: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
