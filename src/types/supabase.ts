@@ -9,14 +9,14 @@ export interface Account {
   phone?: string;
   address?: string;
   avatar_url?: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string; // Changed from Date to string
+  updated_at: string; // Changed from Date to string
 }
 
 export interface Order {
   order_id: number;
   account_id: number;
-  order_date: Date;
+  order_date: string; // Changed from Date to string
   total_amount: number;
   status: 'Chờ xử lý' | 'Đã giao' | 'Đã hủy';
 }
@@ -43,7 +43,7 @@ export interface Wishlist {
   id: number;
   account_id: number;
   product_id: number;
-  created_at: Date;
+  created_at: string; // Changed from Date to string
 }
 
 export interface RevenueStats {

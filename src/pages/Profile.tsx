@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Phone, MapPin, Camera, Package, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,9 +69,15 @@ const Profile = () => {
 
         if (detailsError) throw detailsError;
 
+        // Transform the data to match our interface
+        const transformedDetails = detailsData?.map(detail => ({
+          ...detail,
+          product: detail.products
+        })) || [];
+
         ordersWithDetails.push({
           ...order,
-          order_details: detailsData || []
+          order_details: transformedDetails
         });
       }
 

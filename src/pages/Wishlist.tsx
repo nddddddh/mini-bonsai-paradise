@@ -47,7 +47,13 @@ const Wishlist = () => {
 
       if (error) throw error;
 
-      setWishlistItems(data || []);
+      // Transform the data to match our interface
+      const transformedData = data?.map(item => ({
+        ...item,
+        product: item.products
+      })) || [];
+
+      setWishlistItems(transformedData);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
       toast.error('Lỗi khi tải danh sách yêu thích');

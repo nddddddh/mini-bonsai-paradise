@@ -72,10 +72,16 @@ const OrderManagement = () => {
 
         if (detailsError) throw detailsError;
 
+        // Transform the data to match our interface
+        const transformedDetails = detailsData?.map(detail => ({
+          ...detail,
+          product: detail.products
+        })) || [];
+
         ordersWithDetails.push({
           ...order,
           account: order.accounts,
-          order_details: detailsData || []
+          order_details: transformedDetails
         });
       }
 
@@ -234,7 +240,7 @@ const OrderManagement = () => {
                                 Xem
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl">
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Chi Tiết Đơn Hàng #{selectedOrder?.order_id}</DialogTitle>
                               </DialogHeader>

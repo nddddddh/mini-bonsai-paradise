@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { ShoppingCart, Menu, X, Search, User, Settings, BarChart3, Package, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
+import { useAuth } from '@/hooks/useAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +16,8 @@ import {
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { items } = useCart();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   
   const toggleMenu = () => {
@@ -23,18 +25,9 @@ const Navbar = () => {
   };
   
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
+    logout();
     navigate('/');
   };
-  
-  // Check if user is logged in
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      setIsLoggedIn(true);
-    }
-  }, []);
   
   // Handle scroll effect
   useEffect(() => {
@@ -91,24 +84,52 @@ const Navbar = () => {
             </Button>
           </Link>
           
-          {isLoggedIn ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
                   <User className="w-4 h-4 mr-2" />
-                  Tài khoản
+                  {user.full_name}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem>
-                  <Link to="/profile" className="w-full">Thông tin tài khoản</Link>
+                  <Link to="/profile" className="w-full flex items-center">
+                    <User className="w-4 h-4 mr-2" />
+                    Thông tin tài khoản
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link to="/orders" className="w-full">Đơn hàng của tôi</Link>
+                  <Link to="/wishlist" className="w-full flex items-center">
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Sản phẩm yêu thích
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/wishlist" className="w-full">Sản phẩm yêu thích</Link>
-                </DropdownMenuItem>
+                
+                {isAdmin() && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Link to="/admin/dashboard" className="w-full flex items-center">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link to="/admin/products" className="w-full flex items-center">
+                        <Package className="w-4 h-4 mr-2" />
+                        Quản lý sản phẩm
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link to="/admin/orders" className="w-full flex items-center">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Quản lý đơn hàng
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
                   Đăng xuất
@@ -152,12 +173,20 @@ const Navbar = () => {
             <Link to="/care-guide" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Chăm sóc</Link>
             <Link to="/about" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Về chúng tôi</Link>
             
-            {isLoggedIn ? (
+            {user ? (
               <>
                 <div className="h-px bg-gray-200 my-1"></div>
                 <Link to="/profile" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Thông tin tài khoản</Link>
-                <Link to="/orders" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Đơn hàng của tôi</Link>
                 <Link to="/wishlist" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Sản phẩm yêu thích</Link>
+                
+                {isAdmin() && (
+                  <>
+                    <Link to="/admin/dashboard" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Dashboard</Link>
+                    <Link to="/admin/products" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Quản lý sản phẩm</Link>
+                    <Link to="/admin/orders" className="px-3 py-2 hover:bg-nature-50 rounded-md" onClick={toggleMenu}>Quản lý đơn hàng</Link>
+                  </>
+                )}
+                
                 <button 
                   className="px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-md" 
                   onClick={() => {
