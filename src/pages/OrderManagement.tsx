@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,10 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Search, Filter } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Eye, Search, Filter, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Order, OrderDetail, Product, Account, isValidOrderStatus } from '@/types/supabase';
+import { Order, OrderDetail, Product, Account } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
@@ -45,6 +47,7 @@ const OrderManagement = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      console.log('Fetching orders...');
       
       // Fetch orders with account details
       const { data: ordersData, error: ordersError } = await supabase
@@ -55,7 +58,12 @@ const OrderManagement = () => {
         `)
         .order('order_date', { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error('Orders error:', ordersError);
+        throw ordersError;
+      }
+
+      console.log('Orders data:', ordersData);
 
       // Fetch order details with products for each order
       const ordersWithDetails: OrderWithDetails[] = [];
@@ -69,7 +77,12 @@ const OrderManagement = () => {
           `)
           .eq('order_id', order.order_id);
 
-        if (detailsError) throw detailsError;
+        if (detailsError) {
+          console.error('Order details error:', detailsError);
+          throw detailsError;
+        }
+
+        console.log(`Order ${order.order_id} details:`, detailsData);
 
         // Transform the data to match our interface
         const transformedDetails = detailsData?.map(detail => ({
@@ -83,7 +96,7 @@ const OrderManagement = () => {
           account_id: order.account_id,
           order_date: order.order_date,
           total_amount: order.total_amount,
-          status: order.status, // Keep as string
+          status: order.status,
           account: order.accounts,
           order_details: transformedDetails
         };
@@ -91,6 +104,7 @@ const OrderManagement = () => {
         ordersWithDetails.push(transformedOrder);
       }
 
+      console.log('Final orders with details:', ordersWithDetails);
       setOrders(ordersWithDetails);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -120,23 +134,70 @@ const OrderManagement = () => {
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
+      console.log('Updating order status:', orderId, newStatus);
+      
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('order_id', orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update order status error:', error);
+        throw error;
+      }
 
+      // Update local state
       setOrders(orders.map(order => 
         order.order_id === orderId 
           ? { ...order, status: newStatus }
           : order
       ));
 
+      // Update selected order if it's the one being updated
+      if (selectedOrder && selectedOrder.order_id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+
       toast.success('Cập nhật trạng thái đơn hàng thành công');
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('Lỗi khi cập nhật trạng thái đơn hàng');
+    }
+  };
+
+  const deleteOrder = async (orderId: number) => {
+    try {
+      console.log('Deleting order:', orderId);
+      
+      // First delete order details
+      const { error: detailsError } = await supabase
+        .from('order_details')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (detailsError) {
+        console.error('Delete order details error:', detailsError);
+        throw detailsError;
+      }
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (orderError) {
+        console.error('Delete order error:', orderError);
+        throw orderError;
+      }
+
+      // Update local state
+      setOrders(orders.filter(order => order.order_id !== orderId));
+      
+      toast.success('Xóa đơn hàng thành công');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Lỗi khi xóa đơn hàng');
     }
   };
 
@@ -337,6 +398,32 @@ const OrderManagement = () => {
                               <SelectItem value="Đã hủy">Đã hủy</SelectItem>
                             </SelectContent>
                           </Select>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn xóa đơn hàng #{order.order_id}? 
+                                  Hành động này không thể hoàn tác.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteOrder(order.order_id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

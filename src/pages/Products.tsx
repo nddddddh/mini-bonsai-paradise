@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Filter, ChevronDown, X, SlidersHorizontal, Search } from "lucide-react";
@@ -258,7 +257,8 @@ const Products = () => {
     description: product.description || '',
     price: product.price,
     image: product.image_path || '/placeholder.svg',
-    inStock: product.stock_quantity > 0
+    inStock: product.stock_quantity > 0,
+    stock: product.stock_quantity // Add missing stock property
   });
 
   if (loading) {
