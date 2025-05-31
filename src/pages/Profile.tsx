@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,10 +74,17 @@ const Profile = () => {
           product: detail.products
         })) || [];
 
-        ordersWithDetails.push({
-          ...order,
+        // Cast the order data properly
+        const transformedOrder: OrderWithDetails = {
+          order_id: order.order_id,
+          account_id: order.account_id,
+          order_date: order.order_date,
+          total_amount: order.total_amount,
+          status: order.status, // Keep as string
           order_details: transformedDetails
-        });
+        };
+
+        ordersWithDetails.push(transformedOrder);
       }
 
       setUserOrders(ordersWithDetails);

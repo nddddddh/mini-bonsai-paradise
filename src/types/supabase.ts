@@ -9,16 +9,16 @@ export interface Account {
   phone?: string;
   address?: string;
   avatar_url?: string;
-  created_at: string; // Changed from Date to string
-  updated_at: string; // Changed from Date to string
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Order {
   order_id: number;
   account_id: number;
-  order_date: string; // Changed from Date to string
+  order_date: string;
   total_amount: number;
-  status: 'Chờ xử lý' | 'Đã giao' | 'Đã hủy';
+  status: string; // Changed to string to match database
 }
 
 export interface OrderDetail {
@@ -43,7 +43,7 @@ export interface Wishlist {
   id: number;
   account_id: number;
   product_id: number;
-  created_at: string; // Changed from Date to string
+  created_at: string;
 }
 
 export interface RevenueStats {
@@ -60,3 +60,15 @@ export interface ProductSales {
   total_sold: number;
   total_revenue: number;
 }
+
+// Type guard functions for order status
+export const isValidOrderStatus = (status: string): status is 'Chờ xử lý' | 'Đã giao' | 'Đã hủy' => {
+  return ['Chờ xử lý', 'Đã giao', 'Đã hủy'].includes(status);
+};
+
+export const getOrderStatusBadge = (status: string) => {
+  if (!isValidOrderStatus(status)) {
+    return status; // Return as-is if not a known status
+  }
+  return status;
+};

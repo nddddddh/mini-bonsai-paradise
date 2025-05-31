@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Eye, Search, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Order, OrderDetail, Product, Account } from '@/types/supabase';
+import { Order, OrderDetail, Product, Account, isValidOrderStatus } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
@@ -78,11 +77,18 @@ const OrderManagement = () => {
           product: detail.products
         })) || [];
 
-        ordersWithDetails.push({
-          ...order,
+        // Cast the order data to our interface
+        const transformedOrder: OrderWithDetails = {
+          order_id: order.order_id,
+          account_id: order.account_id,
+          order_date: order.order_date,
+          total_amount: order.total_amount,
+          status: order.status, // Keep as string
           account: order.accounts,
           order_details: transformedDetails
-        });
+        };
+
+        ordersWithDetails.push(transformedOrder);
       }
 
       setOrders(ordersWithDetails);
@@ -123,7 +129,7 @@ const OrderManagement = () => {
 
       setOrders(orders.map(order => 
         order.order_id === orderId 
-          ? { ...order, status: newStatus as Order['status'] }
+          ? { ...order, status: newStatus }
           : order
       ));
 
