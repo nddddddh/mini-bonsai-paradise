@@ -1,301 +1,268 @@
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { ShoppingCart, ArrowRight, Leaf, Heart, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, Leaf } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
-import { plants } from "@/data/plants";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/supabase";
 
 const Index = () => {
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    window.scrollTo(0, 0);
+    fetchFeaturedProducts();
   }, []);
 
-  const featuredPlants = plants.slice(0, 4);
-  const newArrivals = plants.slice(2, 6);
-  const onSale = plants.filter(plant => plant.salePrice);
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .limit(6)
+        .order('product_id', { ascending: false });
 
-  const categories = [
-    {
-      name: "Terrarium",
-      image: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
-      count: plants.filter(p => p.category === "Terrarium").length,
-      slug: "terrarium"
-    },
-    {
-      name: "Bonsai",
-      image: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80",
-      count: plants.filter(p => p.category === "Bonsai").length,
-      slug: "bonsai"
-    },
-    {
-      name: "Sen Đá",
-      image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80",
-      count: plants.filter(p => p.category === "Sen Đá").length,
-      slug: "sen-da"
-    },
-    {
-      name: "Cây Không Khí",
-      image: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80",
-      count: plants.filter(p => p.category === "Cây Không Khí").length,
-      slug: "cay-khong-khi"
+      if (error) throw error;
+      setFeaturedProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching featured products:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Transform products for PlantCard component
+  const transformProductForPlantCard = (product: Product) => ({
+    id: product.product_id,
+    name: product.name,
+    category: product.category,
+    description: product.description || '',
+    price: product.price,
+    image: product.image_path || '/placeholder.svg',
+    inStock: product.stock_quantity > 0
+  });
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       
-      {/* Hero Section with Slogan and Garden Images */}
-      <section className="relative bg-cover bg-center bg-no-repeat h-[600px] md:h-[700px]" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')" }}>
-        <div className="absolute inset-0 bg-black/40"></div>
-        <div className="container mx-auto px-4 py-20 relative z-10 flex flex-col md:flex-row items-center h-full">
-          <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight text-white">
-              <span className="text-nature-300">Kết nối đam mê</span>, gieo mầm nghệ thuật
-            </h1>
-            <p className="text-lg mb-8 text-gray-100">
-              Khám phá bộ sưu tập các loại cây cảnh mini độc đáo, được chọn lọc kỹ lưỡng để làm đẹp không gian và thanh lọc không khí.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/products">
-                <Button className="bg-nature-600 hover:bg-nature-700 text-white">
-                  Khám phá ngay
-                </Button>
-              </Link>
-              <Link to="/care-guide">
-                <Button variant="outline" className="border-white text-white hover:bg-white/20">
-                  Hướng dẫn chăm sóc
-                </Button>
-              </Link>
-            </div>
-            
-            {/* Garden Image Gallery */}
-            <div className="mt-8 grid grid-cols-3 gap-2">
-              <img 
-                src="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
-                alt="Khu vườn bonsai" 
-                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
-              />
-              <img 
-                src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
-                alt="Ánh nắng xuyên qua cây" 
-                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
-              />
-              <img 
-                src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&q=80" 
-                alt="Phong cảnh thiên nhiên" 
-                className="rounded-lg h-24 w-full object-cover border-2 border-white/30"
-              />
-            </div>
-          </div>
-          <div className="md:w-1/2 relative hidden md:block">
-            <div className="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md mx-auto">
-              <img 
-                src="https://images.unsplash.com/photo-1604762510084-bd5d755c6d5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1471&q=80" 
-                alt="Cây cảnh mini trang trí" 
-                className="rounded-lg w-full object-cover mb-4"
-              />
-              <div className="flex items-center gap-3 mt-4">
-                <Leaf className="text-nature-500 w-8 h-8" />
-                <div>
-                  <p className="font-semibold">100% Cây khỏe mạnh</p>
-                  <p className="text-sm text-gray-500">Đảm bảo chất lượng</p>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-nature-50 to-nature-100">
+        <div className="container mx-auto px-4 py-16 md:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight">
+                  Mang thiên nhiên
+                  <span className="text-nature-600 block">vào ngôi nhà</span>
+                </h1>
+                <p className="text-xl text-gray-600 leading-relaxed">
+                  Khám phá bộ sưu tập cây cảnh đa dạng, từ cây nội thất đến cây cảnh mini. 
+                  Tạo không gian xanh mát, thanh khiết cho ngôi nhà của bạn.
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/products">
+                  <Button size="lg" className="bg-nature-600 hover:bg-nature-700 text-white px-8 py-3 rounded-full">
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Mua sắm ngay
+                  </Button>
+                </Link>
+                <Link to="/collections">
+                  <Button variant="outline" size="lg" className="border-nature-600 text-nature-600 hover:bg-nature-50 px-8 py-3 rounded-full">
+                    Xem bộ sưu tập
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-6 pt-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-nature-600">500+</div>
+                  <div className="text-sm text-gray-600">Loại cây</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-nature-600">10k+</div>
+                  <div className="text-sm text-gray-600">Khách hàng</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-nature-600">98%</div>
+                  <div className="text-sm text-gray-600">Hài lòng</div>
                 </div>
               </div>
+            </div>
+            
+            <div className="relative">
+              <div className="relative z-10">
+                <img 
+                  src="/placeholder.svg" 
+                  alt="Beautiful plants collection" 
+                  className="w-full h-auto rounded-2xl shadow-2xl"
+                />
+              </div>
+              {/* Decorative elements */}
+              <div className="absolute -top-6 -right-6 w-32 h-32 bg-nature-200 rounded-full opacity-50 animate-pulse"></div>
+              <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-nature-300 rounded-full opacity-30 animate-pulse delay-1000"></div>
             </div>
           </div>
         </div>
       </section>
-      
-      {/* Categories Section */}
+
+      {/* Features Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Danh mục sản phẩm</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Khám phá các loại cây cảnh mini phù hợp với từng không gian và phong cách sống của bạn.
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Tại sao chọn chúng tôi?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Chúng tôi cam kết mang đến những cây cảnh chất lượng cao và dịch vụ tốt nhất
             </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <Link to={`/collections/${category.slug}`} key={index}>
-                <div className="relative rounded-lg overflow-hidden group h-64 shadow-md">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6 text-white">
-                    <h3 className="font-semibold text-xl mb-1">{category.name}</h3>
-                    <p className="text-sm opacity-90">{category.count} sản phẩm</p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardContent className="text-center p-8">
+                <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Leaf className="w-8 h-8 text-nature-600" />
                 </div>
-              </Link>
-            ))}
+                <h3 className="text-xl font-semibold mb-4">Chất lượng cao</h3>
+                <p className="text-gray-600">
+                  Tất cả cây cảnh được chọn lọc kỹ càng, đảm bảo sức khỏe và chất lượng tốt nhất
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardContent className="text-center p-8">
+                <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Heart className="w-8 h-8 text-nature-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-4">Tư vấn chuyên nghiệp</h3>
+                <p className="text-gray-600">
+                  Đội ngũ chuyên gia sẵn sàng tư vấn cách chăm sóc và lựa chọn cây phù hợp
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardContent className="text-center p-8">
+                <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="w-8 h-8 text-nature-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-4">Cộng đồng yêu cây</h3>
+                <p className="text-gray-600">
+                  Tham gia cộng đồng những người yêu thích cây cảnh, chia sẻ kinh nghiệm
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
-      
-      {/* Featured Products Tabs */}
-      <section className="py-16 bg-nature-50">
+
+      {/* Featured Products */}
+      <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-4">Sản phẩm nổi bật</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Những lựa chọn hoàn hảo để làm đẹp không gian sống của bạn
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Sản phẩm nổi bật
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Những cây cảnh được yêu thích nhất, phù hợp cho mọi không gian
             </p>
           </div>
           
-          <Tabs defaultValue="featured" className="w-full">
-            <div className="flex justify-center mb-8">
-              <TabsList className="bg-white shadow-sm">
-                <TabsTrigger value="featured" className="px-6">Phổ biến nhất</TabsTrigger>
-                <TabsTrigger value="new" className="px-6">Hàng mới về</TabsTrigger>
-                <TabsTrigger value="sale" className="px-6">Đang giảm giá</TabsTrigger>
-              </TabsList>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Đang tải sản phẩm...</p>
             </div>
-            
-            <TabsContent value="featured">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredPlants.map((plant) => (
-                  <PlantCard key={plant.id} plant={plant} />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="new">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {newArrivals.map((plant) => (
-                  <PlantCard key={plant.id} plant={plant} />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="sale">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {onSale.map((plant) => (
-                  <PlantCard key={plant.id} plant={plant} />
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredProducts.map(product => (
+                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} />
+              ))}
+            </div>
+          )}
           
-          <div className="mt-10 text-center">
+          <div className="text-center mt-12">
             <Link to="/products">
-              <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
-                Xem tất cả sản phẩm <ChevronRight className="ml-2 w-4 h-4" />
+              <Button size="lg" variant="outline" className="border-nature-600 text-nature-600 hover:bg-nature-50">
+                Xem tất cả sản phẩm
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
           </div>
         </div>
       </section>
-      
-      {/* Benefits Section */}
+
+      {/* Testimonials */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Tại sao chọn BonsaiHub?</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Chúng tôi cam kết mang đến những sản phẩm chất lượng cao và trải nghiệm mua sắm tuyệt vời
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Khách hàng nói gì về chúng tôi
+            </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-nature-50 p-8 rounded-lg text-center">
-              <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-nature-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-xl mb-4">Chất lượng đảm bảo</h3>
-              <p className="text-gray-600">
-                Tất cả cây cảnh của chúng tôi đều được tuyển chọn kỹ lưỡng, khỏe mạnh và sẵn sàng cho không gian sống của bạn.
-              </p>
-            </div>
-            
-            <div className="bg-nature-50 p-8 rounded-lg text-center">
-              <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-nature-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-xl mb-4">Giao hàng nhanh chóng</h3>
-              <p className="text-gray-600">
-                Đóng gói cẩn thận và giao hàng tận nơi bảo đảm cây đến tay bạn trong tình trạng hoàn hảo.
-              </p>
-            </div>
-            
-            <div className="bg-nature-50 p-8 rounded-lg text-center">
-              <div className="w-16 h-16 bg-nature-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-nature-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-xl mb-4">Hỗ trợ tận tâm</h3>
-              <p className="text-gray-600">
-                Đội ngũ chuyên gia của chúng tôi luôn sẵn sàng giúp đỡ bạn với mọi thắc mắc về chăm sóc cây.
-              </p>
-            </div>
+            {[
+              {
+                name: "Nguyễn Thị Lan",
+                comment: "Cây cảnh chất lượng tuyệt vời, tư vấn nhiệt tình. Nhà tôi giờ xanh mát hơn nhiều!",
+                rating: 5
+              },
+              {
+                name: "Trần Văn Nam",
+                comment: "Dịch vụ giao hàng nhanh, cây được đóng gói cẩn thận. Rất hài lòng!",
+                rating: 5
+              },
+              {
+                name: "Lê Thị Mai",
+                comment: "Đa dạng loại cây, giá cả hợp lý. Sẽ tiếp tục mua ở đây!",
+                rating: 5
+              }
+            ].map((testimonial, index) => (
+              <Card key={index} className="border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-4">"{testimonial.comment}"</p>
+                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
-      
-      {/* Testimonial Section */}
-      <section className="py-16 bg-nature-900 bg-[url('https://images.unsplash.com/photo-1482859454392-5b7c972ab642?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')] bg-cover bg-center bg-blend-multiply text-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-8">Khách hàng nói gì về chúng tôi</h2>
-            
-            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-lg">
-              <div className="mb-6">
-                <svg className="w-12 h-12 text-nature-200 opacity-50 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                </svg>
-              </div>
-              <p className="text-xl mb-6 leading-relaxed">
-                Tôi rất hài lòng với các sản phẩm từ BonsaiHub. Terrarium tôi mua gần 6 tháng trước vẫn phát triển tốt và tạo điểm nhấn tuyệt vời cho góc làm việc của tôi. Cảm ơn vì những lời khuyên hữu ích về cách chăm sóc.
-              </p>
-              <div>
-                <p className="font-semibold text-lg">Nguyễn Minh Anh</p>
-                <p className="text-nature-200">Khách hàng thân thiết</p>
-              </div>
-            </div>
-          </div>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-nature-600">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Bắt đầu hành trình xanh của bạn
+          </h2>
+          <p className="text-xl text-nature-100 mb-8 max-w-2xl mx-auto">
+            Khám phá thế giới cây cảnh đa dạng và tạo nên không gian sống lý tưởng
+          </p>
+          <Link to="/products">
+            <Button size="lg" className="bg-white text-nature-600 hover:bg-nature-50 px-8 py-3 rounded-full">
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Mua sắm ngay
+            </Button>
+          </Link>
         </div>
       </section>
-      
-      {/* Newsletter Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Đăng ký nhận thông tin</h2>
-            <p className="text-gray-600 mb-8">
-              Nhận thông tin về sản phẩm mới, mẹo chăm sóc cây và ưu đãi đặc biệt
-            </p>
-            
-            <form className="flex flex-col md:flex-row gap-3 justify-center">
-              <input 
-                type="email" 
-                placeholder="Email của bạn" 
-                className="px-4 py-3 rounded-md border border-gray-300 flex-grow max-w-md focus:outline-none focus:ring-2 focus:ring-nature-500"
-                required
-              />
-              <Button className="bg-nature-600 hover:bg-nature-700 text-white">
-                Đăng ký
-              </Button>
-            </form>
-            <p className="text-xs text-gray-500 mt-4">
-              Chúng tôi tôn trọng quyền riêng tư của bạn và sẽ không bao giờ chia sẻ thông tin của bạn.
-            </p>
-          </div>
-        </div>
-      </section>
-      
+
       <Footer />
     </div>
   );

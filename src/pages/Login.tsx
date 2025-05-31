@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -15,23 +16,27 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // In a real app, this would authenticate with a backend
-    // This is just a simulation
-    setTimeout(() => {
-      if (email && password) {
+    try {
+      const success = await login(email, password);
+      
+      if (success) {
         toast.success("Đăng nhập thành công!");
-        localStorage.setItem('user', JSON.stringify({ email }));
         navigate('/');
       } else {
         toast.error("Email hoặc mật khẩu không đúng!");
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error("Đã xảy ra lỗi khi đăng nhập!");
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

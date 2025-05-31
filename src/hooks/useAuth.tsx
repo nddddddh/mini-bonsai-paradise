@@ -18,31 +18,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider initializing...');
+    
     // Check if user is logged in from localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        console.log('Found saved user:', parsedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
         .eq('email', email)
         .single();
 
-      if (error || !data) {
+      if (error) {
         console.error('Login error:', error);
         return false;
       }
 
+      if (!data) {
+        console.error('No user found with email:', email);
+        return false;
+      }
+
+      console.log('User found:', data);
+      
       // In a real app, you would verify the password hash here
-      // For demo purposes, we'll accept any password
+      // For demo purposes, we'll accept any password for existing users
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
+      console.log('Login successful, user set:', data);
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -51,13 +70,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
+    console.log('Logging out user');
     setUser(null);
     localStorage.removeItem('user');
   };
 
   const isAdmin = () => {
-    return user?.role === 0;
+    const result = user?.role === 0;
+    console.log('Checking if admin:', user?.role, 'Result:', result);
+    return result;
   };
+
+  console.log('AuthProvider rendering, user:', user, 'loading:', loading);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, isAdmin }}>

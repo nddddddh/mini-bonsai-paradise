@@ -1,44 +1,47 @@
 
-import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useWishlist } from '@/hooks/useWishlist';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface WishlistButtonProps {
   productId: number;
   className?: string;
-  size?: 'sm' | 'default' | 'lg';
-  variant?: 'default' | 'outline' | 'ghost';
 }
 
-const WishlistButton = ({ 
-  productId, 
-  className, 
-  size = 'default',
-  variant = 'outline'
-}: WishlistButtonProps) => {
-  const { isInWishlist, toggleWishlist } = useWishlist();
+const WishlistButton = ({ productId, className = "" }: WishlistButtonProps) => {
+  const { addToWishlist, removeFromWishlist, isInWishlist, loading } = useWishlist();
+  const { user } = useAuth();
   const inWishlist = isInWishlist(productId);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      return;
+    }
+
+    if (inWishlist) {
+      await removeFromWishlist(productId);
+    } else {
+      await addToWishlist(productId);
+    }
+  };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <Button
-      variant={variant}
-      size={size}
-      onClick={() => toggleWishlist(productId)}
-      className={cn(
-        'transition-colors',
-        inWishlist && 'text-red-500 border-red-500 hover:bg-red-50',
-        className
-      )}
+      variant="ghost"
+      size="icon"
+      onClick={handleClick}
+      disabled={loading}
+      className={`${className} ${inWishlist ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-red-500'}`}
     >
-      <Heart 
-        className={cn(
-          'w-4 h-4',
-          size === 'sm' && 'w-3 h-3',
-          size === 'lg' && 'w-5 h-5',
-          inWishlist && 'fill-current'
-        )} 
-      />
+      <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
     </Button>
   );
 };

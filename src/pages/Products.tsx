@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Filter, ChevronDown, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { Filter, ChevronDown, X, SlidersHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -17,32 +17,14 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
-import { plants } from "@/data/plants";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
-// Mở rộng danh sách sản phẩm lên 100 sản phẩm
-const generateMorePlants = () => {
-  const extendedPlants = [...plants];
-  
-  // Tạo thêm sản phẩm dựa trên sản phẩm hiện có
-  for (let i = 1; i < 5; i++) {
-    plants.forEach((plant, index) => {
-      extendedPlants.push({
-        ...plant,
-        id: plants.length * i + index,
-        name: `${plant.name} - Phiên bản ${i + 1}`,
-      });
-    });
-  }
-  
-  return extendedPlants;
-};
-
-const allPlants = generateMorePlants();
-
 const Products = () => {
-  const [filteredPlants, setFilteredPlants] = useState(allPlants);
-  const [displayedPlants, setDisplayedPlants] = useState<typeof plants>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<number[]>([0, 1000000]);
@@ -51,64 +33,100 @@ const Products = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 12;
   const { toast } = useToast();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    // Get unique categories
-    const uniqueCategories = Array.from(new Set(allPlants.map(plant => plant.category)));
-    setCategories(uniqueCategories);
-    
-    // Find min and max price
-    const prices = allPlants.map(plant => plant.salePrice || plant.price);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    setMinMaxPrice([min, max]);
-    setPriceRange([min, max]);
-
-    toast({
-      title: "Sản phẩm đã được cập nhật",
-      description: "Danh sách hiện có hơn 100 sản phẩm khác nhau để bạn lựa chọn",
-      duration: 3000,
-    });
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('product_id', { ascending: false });
+
+      if (error) throw error;
+      
+      const productsData = data || [];
+      setProducts(productsData);
+      
+      // Get unique categories
+      const uniqueCategories = Array.from(new Set(productsData.map(product => product.category)));
+      setCategories(uniqueCategories);
+      
+      // Find min and max price
+      if (productsData.length > 0) {
+        const prices = productsData.map(product => product.price);
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        setMinMaxPrice([min, max]);
+        setPriceRange([min, max]);
+      }
+
+      toast({
+        title: "Sản phẩm đã được cập nhật",
+        description: `Danh sách hiện có ${productsData.length} sản phẩm từ database`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách sản phẩm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     applyFilters();
-  }, [selectedCategories, priceRange, sortBy]);
+  }, [products, selectedCategories, priceRange, sortBy, searchTerm]);
 
   useEffect(() => {
     // Tính toán sản phẩm hiển thị dựa trên trang hiện tại
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    setDisplayedPlants(filteredPlants.slice(startIndex, endIndex));
-    setTotalPages(Math.ceil(filteredPlants.length / itemsPerPage));
+    setDisplayedProducts(filteredProducts.slice(startIndex, endIndex));
+    setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
     window.scrollTo(0, 0);
-  }, [currentPage, filteredPlants]);
+  }, [currentPage, filteredProducts]);
 
   const applyFilters = () => {
-    let result = [...allPlants];
+    let result = [...products];
+    
+    // Filter by search term
+    if (searchTerm) {
+      result = result.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
     
     // Filter by category
     if (selectedCategories.length > 0) {
-      result = result.filter(plant => selectedCategories.includes(plant.category));
+      result = result.filter(product => selectedCategories.includes(product.category));
     }
     
     // Filter by price range
-    result = result.filter(plant => {
-      const price = plant.salePrice || plant.price;
-      return price >= priceRange[0] && price <= priceRange[1];
+    result = result.filter(product => {
+      return product.price >= priceRange[0] && product.price <= priceRange[1];
     });
     
     // Sort results
     switch (sortBy) {
       case "price-asc":
-        result.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price));
+        result.sort((a, b) => a.price - b.price);
         break;
       case "price-desc":
-        result.sort((a, b) => (b.salePrice || b.price) - (a.salePrice || a.price));
+        result.sort((a, b) => b.price - a.price);
         break;
       case "name-asc":
         result.sort((a, b) => a.name.localeCompare(b.name));
@@ -121,7 +139,7 @@ const Products = () => {
         break;
     }
     
-    setFilteredPlants(result);
+    setFilteredProducts(result);
     setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi bộ lọc
   };
 
@@ -137,6 +155,7 @@ const Products = () => {
     setSelectedCategories([]);
     setPriceRange(minMaxPrice);
     setSortBy("featured");
+    setSearchTerm('');
   };
 
   const toggleMobileFilter = () => {
@@ -231,6 +250,31 @@ const Products = () => {
     return items;
   };
 
+  // Transform products for PlantCard component
+  const transformProductForPlantCard = (product: Product) => ({
+    id: product.product_id,
+    name: product.name,
+    category: product.category,
+    description: product.description || '',
+    price: product.price,
+    image: product.image_path || '/placeholder.svg',
+    inStock: product.stock_quantity > 0
+  });
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <p className="text-gray-500">Đang tải sản phẩm...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -266,6 +310,21 @@ const Products = () => {
                 >
                   Xóa bộ lọc
                 </Button>
+              </div>
+              
+              {/* Search */}
+              <div className="mb-6">
+                <h3 className="font-medium mb-3">Tìm kiếm</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nature-500"
+                  />
+                </div>
               </div>
               
               {/* Categories */}
@@ -318,6 +377,21 @@ const Products = () => {
                   <Button variant="ghost" size="icon" onClick={toggleMobileFilter}>
                     <X className="w-5 h-5" />
                   </Button>
+                </div>
+                
+                {/* Search */}
+                <div className="mb-6">
+                  <h3 className="font-medium mb-3">Tìm kiếm</h3>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm sản phẩm..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nature-500"
+                    />
+                  </div>
                 </div>
                 
                 {/* Categories */}
@@ -386,7 +460,7 @@ const Products = () => {
             <div className="hidden lg:flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-2xl font-bold">Tất cả sản phẩm</h1>
-                <p className="text-gray-600 mt-1">Hiển thị {displayedPlants.length} trên tổng số {filteredPlants.length} sản phẩm</p>
+                <p className="text-gray-600 mt-1">Hiển thị {displayedProducts.length} trên tổng số {filteredProducts.length} sản phẩm</p>
               </div>
               
               <div className="flex items-center">
@@ -411,7 +485,6 @@ const Products = () => {
             {/* Mobile Sort */}
             <div className="lg:hidden flex justify-between items-center mb-6">
               <div className="flex items-center">
-                <SlidersHorizontal className="w-4 h-4 mr-2 text-gray-600" />
                 <div className="relative">
                   <select 
                     value={sortBy}
@@ -428,7 +501,7 @@ const Products = () => {
                 </div>
               </div>
               
-              {selectedCategories.length > 0 && (
+              {(selectedCategories.length > 0 || searchTerm) && (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -441,8 +514,16 @@ const Products = () => {
             </div>
             
             {/* Active Filters */}
-            {selectedCategories.length > 0 && (
+            {(selectedCategories.length > 0 || searchTerm) && (
               <div className="flex flex-wrap gap-2 mb-6">
+                {searchTerm && (
+                  <div className="bg-nature-50 px-3 py-1 rounded-full flex items-center text-sm">
+                    <span className="mr-1">Tìm kiếm: "{searchTerm}"</span>
+                    <button onClick={() => setSearchTerm('')}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
                 {selectedCategories.map(category => (
                   <div key={category} className="bg-nature-50 px-3 py-1 rounded-full flex items-center text-sm">
                     <span className="mr-1">{category}</span>
@@ -455,10 +536,10 @@ const Products = () => {
             )}
             
             {/* Products Grid */}
-            {displayedPlants.length > 0 ? (
+            {displayedProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-                {displayedPlants.map(plant => (
-                  <PlantCard key={plant.id} plant={plant} />
+                {displayedProducts.map(product => (
+                  <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} />
                 ))}
               </div>
             ) : (
@@ -477,7 +558,7 @@ const Products = () => {
             )}
             
             {/* Pagination */}
-            {filteredPlants.length > 0 && (
+            {filteredProducts.length > 0 && totalPages > 1 && (
               <div className="mt-12">
                 <Pagination>
                   <PaginationContent>
@@ -510,4 +591,3 @@ const Products = () => {
 };
 
 export default Products;
-
