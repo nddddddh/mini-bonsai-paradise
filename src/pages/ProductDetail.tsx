@@ -233,7 +233,6 @@ const ProductDetail = () => {
               </Button>
               <WishlistButton 
                 productId={product.product_id} 
-                size="lg"
                 className="border-nature-600 text-nature-600 hover:bg-nature-50"
               />
             </div>

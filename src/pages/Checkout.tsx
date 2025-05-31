@@ -57,7 +57,7 @@ const Checkout = () => {
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
-        .eq('account_id', user.id)
+        .eq('account_id', user.account_id)
         .single();
 
       if (error) {
@@ -174,7 +174,7 @@ const Checkout = () => {
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
-          account_id: user.id,
+          account_id: user.account_id,
           total_amount: orderTotal,
           status: 'Chờ xử lý'
         })
