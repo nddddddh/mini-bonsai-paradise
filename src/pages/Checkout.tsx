@@ -4,18 +4,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { ChevronLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, clearCart, cartTotal } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -33,6 +34,7 @@ const Checkout = () => {
     city: "",
     agreeToTerms: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -41,7 +43,39 @@ const Checkout = () => {
     if (items.length === 0) {
       navigate('/cart');
     }
-  }, [items, navigate]);
+
+    // Pre-fill form if user is logged in
+    if (user) {
+      fetchUserData();
+    }
+  }, [items, navigate, user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('account_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user data:', error);
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        fullName: data.full_name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || ""
+      }));
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
   
   const shippingFee = cartTotal >= 500000 ? 0 : 50000;
   const orderTotal = cartTotal + shippingFee;
@@ -120,20 +154,83 @@ const Checkout = () => {
     return valid;
   };
   
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      // Process order
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để đặt hàng");
+      navigate('/login');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create order
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          account_id: user.id,
+          total_amount: orderTotal,
+          status: 'Chờ xử lý'
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
+      }
+
+      // Create order details
+      const orderDetails = items.map(item => ({
+        order_id: orderData.order_id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price: item.salePrice || item.price
+      }));
+
+      const { error: detailsError } = await supabase
+        .from('order_details')
+        .insert(orderDetails);
+
+      if (detailsError) {
+        console.error('Error creating order details:', detailsError);
+        throw detailsError;
+      }
+
+      // Update product stock
+      for (const item of items) {
+        const { error: stockError } = await supabase
+          .from('products')
+          .update({ 
+            stock_quantity: Math.max(0, item.stock - item.quantity)
+          })
+          .eq('product_id', item.id);
+
+        if (stockError) {
+          console.error('Error updating stock:', stockError);
+          // Don't throw here, order is already created
+        }
+      }
+
       toast.success("Đặt hàng thành công!", {
-        description: "Cảm ơn bạn đã mua hàng. Đơn hàng của bạn đang được xử lý.",
+        description: `Mã đơn hàng: #${orderData.order_id}. Cảm ơn bạn đã mua hàng!`,
       });
       
-      // Clear cart and redirect to success page
-      setTimeout(() => {
-        clearCart();
-        navigate('/');
-      }, 2000);
+      // Clear cart and redirect
+      clearCart();
+      navigate('/profile');
+      
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      toast.error("Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -264,26 +361,10 @@ const Checkout = () => {
               
               <h2 className="text-xl font-semibold mt-10 mb-6">Phương thức thanh toán</h2>
               
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-                className="space-y-4"
-              >
-                <div className="flex items-center space-x-3 border rounded-md p-4">
-                  <RadioGroupItem value="cod" id="cod" />
-                  <Label htmlFor="cod" className="cursor-pointer flex-grow">Thanh toán khi nhận hàng (COD)</Label>
-                </div>
-                
-                <div className="flex items-center space-x-3 border rounded-md p-4">
-                  <RadioGroupItem value="bank" id="bank" />
-                  <Label htmlFor="bank" className="cursor-pointer flex-grow">Chuyển khoản ngân hàng</Label>
-                </div>
-                
-                <div className="flex items-center space-x-3 border rounded-md p-4">
-                  <RadioGroupItem value="momo" id="momo" />
-                  <Label htmlFor="momo" className="cursor-pointer flex-grow">Thanh toán qua Momo</Label>
-                </div>
-              </RadioGroup>
+              <div className="flex items-center space-x-3 border rounded-md p-4 bg-nature-50">
+                <div className="w-4 h-4 bg-nature-600 rounded-full"></div>
+                <Label className="cursor-pointer flex-grow">Thanh toán khi nhận hàng (COD)</Label>
+              </div>
               
               <div className="mt-8 flex items-start space-x-3">
                 <Checkbox 
@@ -312,8 +393,12 @@ const Checkout = () => {
                     Quay lại giỏ hàng
                   </Button>
                 </Link>
-                <Button type="submit" className="bg-nature-600 hover:bg-nature-700 text-white ml-auto">
-                  Đặt hàng
+                <Button 
+                  type="submit" 
+                  className="bg-nature-600 hover:bg-nature-700 text-white ml-auto"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
                 </Button>
               </div>
             </form>

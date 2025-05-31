@@ -7,11 +7,13 @@ import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
-import { plants } from "@/data/plants";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/supabase";
 
 const CategoryProducts = () => {
   const { category } = useParams();
-  const [filteredPlants, setFilteredPlants] = useState<typeof plants>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Convert category URL param to display name
@@ -34,29 +36,78 @@ const CategoryProducts = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    // Filter plants by category
-    const categoryName = getCategoryDisplayName();
-    const filtered = plants.filter(plant => plant.category === categoryName);
-    
-    if (filtered.length > 0) {
-      setFilteredPlants(filtered);
+    fetchProductsByCategory();
+  }, [category]);
+
+  const fetchProductsByCategory = async () => {
+    try {
+      setLoading(true);
+      const categoryName = getCategoryDisplayName();
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', categoryName)
+        .order('product_id', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+
+      setProducts(data || []);
+      
+      if (data && data.length > 0) {
+        toast({
+          title: `Danh mục: ${categoryName}`,
+          description: `Đã tìm thấy ${data.length} sản phẩm trong danh mục này`,
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Không tìm thấy sản phẩm",
+          description: "Không có sản phẩm nào thuộc danh mục này",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
       toast({
-        title: `Danh mục: ${categoryName}`,
-        description: `Đã tìm thấy ${filtered.length} sản phẩm trong danh mục này`,
-        duration: 3000,
-      });
-    } else {
-      // If no plants found in this category
-      setFilteredPlants([]);
-      toast({
-        title: "Không tìm thấy sản phẩm",
-        description: "Không có sản phẩm nào thuộc danh mục này",
+        title: "Lỗi",
+        description: "Không thể tải danh sách sản phẩm",
         variant: "destructive",
-        duration: 3000,
       });
+    } finally {
+      setLoading(false);
     }
-  }, [category, toast]);
+  };
+
+  // Transform products for PlantCard component
+  const transformProductForPlantCard = (product: Product) => ({
+    id: product.product_id,
+    name: product.name,
+    category: product.category,
+    description: product.description || '',
+    price: product.price,
+    image: product.image_path || '/placeholder.svg',
+    inStock: product.stock_quantity > 0,
+    stock: product.stock_quantity
+  });
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <p className="text-gray-500">Đang tải sản phẩm...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -75,15 +126,15 @@ const CategoryProducts = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{getCategoryDisplayName()}</h1>
           <p className="text-gray-600">
-            {filteredPlants.length} sản phẩm thuộc danh mục {getCategoryDisplayName().toLowerCase()}
+            {products.length} sản phẩm thuộc danh mục {getCategoryDisplayName().toLowerCase()}
           </p>
         </div>
         
-        {filteredPlants.length > 0 ? (
+        {products.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-              {filteredPlants.map(plant => (
-                <PlantCard key={plant.id} plant={plant} />
+              {products.map(product => (
+                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} />
               ))}
             </div>
             
