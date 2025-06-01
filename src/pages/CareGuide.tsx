@@ -8,8 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
 // Care guide categories and content
 const careCategories = [
@@ -32,45 +30,138 @@ interface CareGuide {
   featured: boolean;
 }
 
+// Static care guides data
+const staticCareGuides: CareGuide[] = [
+  {
+    id: 1,
+    title: 'Cách chăm sóc cây xanh trong nhà',
+    category: 'basics',
+    excerpt: 'Những kiến thức cơ bản để chăm sóc cây cảnh trong nhà một cách hiệu quả và khoa học.',
+    content: `
+      <h2>Hướng dẫn chi tiết về cách chăm sóc cây xanh trong nhà</h2>
+      
+      <p>Việc chăm sóc cây xanh trong nhà không chỉ giúp không gian sống thêm xanh mát mà còn mang lại nhiều lợi ích cho sức khỏe và tinh thần. Dưới đây là hướng dẫn chi tiết:</p>
+      
+      <h3>1. Chọn vị trí đặt cây</h3>
+      <p>- Đặt cây gần cửa sổ để nhận ánh sáng tự nhiên<br>
+      - Tránh những nơi có gió lùa mạnh<br>
+      - Không đặt gần máy điều hòa hoặc máy sưởi</p>
+      
+      <h3>2. Tưới nước đúng cách</h3>
+      <p>- Kiểm tra độ ẩm đất trước khi tưới<br>
+      - Tưới vào buổi sáng sớm hoặc chiều mát<br>
+      - Sử dụng nước đã để lắng 24 giờ</p>
+      
+      <h3>3. Bón phân định kỳ</h3>
+      <p>- Bón phân hữu cơ 2-3 tuần/lần<br>
+      - Sử dụng phân NPK cân bằng<br>
+      - Tránh bón phân khi cây đang stress</p>
+      
+      <h3>4. Phòng trừ sâu bệnh</h3>
+      <p>- Kiểm tra cây thường xuyên<br>
+      - Vệ sinh lá bằng khăn ẩm<br>
+      - Sử dụng thuốc sinh học an toàn</p>
+    `,
+    image_url: 'https://images.unsplash.com/photo-1466781783364-36c955e42a7d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2071&q=80',
+    slug: 'cham-soc-cay-trong-nha',
+    featured: true
+  },
+  {
+    id: 2,
+    title: 'Lịch trình tưới nước cho các loại cây phổ biến',
+    category: 'watering',
+    excerpt: 'Hướng dẫn chi tiết về tần suất và lượng nước cần thiết cho từng loại cây cảnh phổ biến.',
+    content: `
+      <h2>Lịch trình tưới nước cho các loại cây phổ biến</h2>
+      
+      <p>Việc tưới nước đúng cách là yếu tố quan trọng nhất quyết định sự sống còn của cây. Mỗi loại cây có nhu cầu nước khác nhau:</p>
+      
+      <h3>1. Cây mọng nước (Sen đá, xương rồng)</h3>
+      <p>- Tần suất: 1-2 tuần/lần<br>
+      - Lượng nước: Ít, chỉ ướt nhẹ bề mặt<br>
+      - Dấu hiệu cần tưới: Đất khô hoàn toàn</p>
+      
+      <h3>2. Cây lá to (Monstera, Philodendron)</h3>
+      <p>- Tần suất: 3-4 ngày/lần<br>
+      - Lượng nước: Trung bình, ướt đều đất<br>
+      - Dấu hiệu cần tưới: Đất khô 2-3cm từ trên xuống</p>
+      
+      <h3>3. Cây thủy sinh (Cây bạc hà nước)</h3>
+      <p>- Tần suất: Hàng ngày<br>
+      - Lượng nước: Giữ mực nước ổn định<br>
+      - Lưu ý: Thay nước 1 tuần/lần</p>
+      
+      <h3>4. Cây ưa ẩm (Dương xỉ, Calathea)</h3>
+      <p>- Tần suất: 2-3 ngày/lần<br>
+      - Lượng nước: Nhiều, giữ đất luôn ẩm<br>
+      - Phun sương: 1-2 lần/ngày</p>
+      
+      <h3>Mẹo hay:</h3>
+      <p>- Dùng que tăm kiểm tra độ ẩm đất<br>
+      - Quan sát lá để biết cây thiếu hay thừa nước<br>
+      - Tưới vào buổi sáng để cây hấp thụ tốt nhất</p>
+    `,
+    image_url: 'https://images.unsplash.com/photo-1562517634-baa2da3accb6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NHx8d2F0ZXJpbmclMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60',
+    slug: 'lich-trinh-tuoi-nuoc',
+    featured: true
+  },
+  {
+    id: 3,
+    title: 'Yêu cầu ánh sáng cho từng loại cây',
+    category: 'light',
+    excerpt: 'Tìm hiểu về nhu cầu ánh sáng của các loại cây khác nhau và cách bố trí phù hợp.',
+    content: 'Hướng dẫn về việc đặt cây ở vị trí có ánh sáng phù hợp và cách nhận biết thiếu hoặc thừa ánh sáng.',
+    image_url: 'https://images.unsplash.com/photo-1467043153537-a4fba4522cd4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8cGxhbnQlMjBsaWdodHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
+    slug: 'yeu-cau-anh-sang',
+    featured: false
+  },
+  {
+    id: 4,
+    title: 'Loại đất trồng phù hợp cho từng loại cây',
+    category: 'soil',
+    excerpt: 'Hướng dẫn lựa chọn và pha trộn đất trồng cho các loại cây khác nhau một cách tối ưu.',
+    content: 'Tìm hiểu về các loại đất trồng và cách pha trộn để tạo môi trường tốt nhất cho cây.',
+    image_url: 'https://images.unsplash.com/photo-1526644253653-a411eaaaa161?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8c29pbHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
+    slug: 'dat-trong-phu-hop',
+    featured: false
+  },
+  {
+    id: 5,
+    title: 'Cách bón phân hiệu quả cho cây trồng',
+    category: 'fertilizer',
+    excerpt: 'Những điều cần biết về các loại phân bón và cách sử dụng chúng hiệu quả nhất.',
+    content: 'Hướng dẫn về việc chọn và sử dụng phân bón phù hợp cho từng loại cây.',
+    image_url: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8ZmVydGlsaXplcnxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
+    slug: 'cach-bon-phan-hieu-qua',
+    featured: false
+  },
+  {
+    id: 6,
+    title: 'Nhận biết và điều trị các loại sâu bệnh hại cây',
+    category: 'pests',
+    excerpt: 'Hướng dẫn nhận biết, phòng ngừa và điều trị các loại sâu bệnh hại phổ biến.',
+    content: 'Cách nhận biết các dấu hiệu của sâu bệnh và phương pháp điều trị hiệu quả.',
+    image_url: 'https://images.unsplash.com/photo-1596644439270-69891471c1e6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NXx8cGxhbnQlMjBwZXN0c3xlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
+    slug: 'dieu-tri-sau-benh-hai',
+    featured: false
+  }
+];
+
 const CareGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [careGuides, setCareGuides] = useState<CareGuide[]>([]);
   const [featuredArticles, setFeaturedArticles] = useState<CareGuide[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
-    fetchCareGuides();
-  }, []);
-
-  const fetchCareGuides = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('care_guides')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching care guides:', error);
-        throw error;
-      }
-
-      setCareGuides(data || []);
-      setFeaturedArticles((data || []).filter(guide => guide.featured));
-    } catch (error) {
-      console.error('Error fetching care guides:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách hướng dẫn chăm sóc",
-        variant: "destructive",
-      });
-    } finally {
+    // Simulate loading and use static data
+    setTimeout(() => {
+      setCareGuides(staticCareGuides);
+      setFeaturedArticles(staticCareGuides.filter(guide => guide.featured));
       setLoading(false);
-    }
-  };
+    }, 500);
+  }, []);
 
   const filteredGuides = activeTab === 'all' 
     ? careGuides.filter(guide => 
