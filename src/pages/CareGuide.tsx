@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 // Care guide categories and content
 const careCategories = [
@@ -19,76 +21,56 @@ const careCategories = [
   { id: 'pests', name: 'Sâu bệnh hại', icon: '🐛' },
 ];
 
-const careGuides = [
-  {
-    id: 1,
-    title: 'Cách chăm sóc cây xanh trong nhà',
-    category: 'basics',
-    excerpt: 'Những kiến thức cơ bản để chăm sóc cây cảnh trong nhà...',
-    imageUrl: 'https://images.unsplash.com/photo-1466781783364-36c955e42a7d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2071&q=80',
-    slug: 'cham-soc-cay-trong-nha'
-  },
-  {
-    id: 2,
-    title: 'Lịch trình tưới nước cho các loại cây phổ biến',
-    category: 'watering',
-    excerpt: 'Hướng dẫn chi tiết về tần suất và lượng nước cần thiết cho từng loại cây...',
-    imageUrl: 'https://images.unsplash.com/photo-1562517634-baa2da3accb6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NHx8d2F0ZXJpbmclMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60',
-    slug: 'lich-trinh-tuoi-nuoc'
-  },
-  {
-    id: 3,
-    title: 'Yêu cầu ánh sáng cho từng loại cây',
-    category: 'light',
-    excerpt: 'Tìm hiểu về nhu cầu ánh sáng của các loại cây khác nhau...',
-    imageUrl: 'https://images.unsplash.com/photo-1467043153537-a4fba4522cd4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8cGxhbnQlMjBsaWdodHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
-    slug: 'yeu-cau-anh-sang'
-  },
-  {
-    id: 4,
-    title: 'Loại đất trồng phù hợp cho từng loại cây',
-    category: 'soil',
-    excerpt: 'Hướng dẫn lựa chọn và pha trộn đất trồng cho các loại cây khác nhau...',
-    imageUrl: 'https://images.unsplash.com/photo-1526644253653-a411eaaaa161?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8c29pbHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
-    slug: 'dat-trong-phu-hop'
-  },
-  {
-    id: 5,
-    title: 'Cách bón phân hiệu quả cho cây trồng',
-    category: 'fertilizer',
-    excerpt: 'Những điều cần biết về các loại phân bón và cách sử dụng chúng...',
-    imageUrl: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8ZmVydGlsaXplcnxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
-    slug: 'cach-bon-phan-hieu-qua'
-  },
-  {
-    id: 6,
-    title: 'Nhận biết và điều trị các loại sâu bệnh hại cây',
-    category: 'pests',
-    excerpt: 'Hướng dẫn nhận biết, phòng ngừa và điều trị các loại sâu bệnh hại...',
-    imageUrl: 'https://images.unsplash.com/photo-1596644439270-69891471c1e6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NXx8cGxhbnQlMjBwZXN0c3xlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
-    slug: 'dieu-tri-sau-benh-hai'
-  },
-];
-
-// Featured articles
-const featuredArticles = [
-  {
-    id: 101,
-    title: '10 Loài cây không cần nhiều ánh sáng',
-    imageUrl: 'https://images.unsplash.com/photo-1463320898484-cdee8141c787?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8OHx8bG93JTIwbGlnaHQlMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60',
-    slug: 'cay-it-anh-sang'
-  },
-  {
-    id: 102,
-    title: 'Cách nhân giống cây từ cành',
-    imageUrl: 'https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8cGxhbnQlMjBjdXR0aW5nc3xlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60',
-    slug: 'nhan-giong-tu-canh'
-  },
-];
+interface CareGuide {
+  id: number;
+  title: string;
+  category: string;
+  excerpt: string;
+  content: string;
+  image_url: string;
+  slug: string;
+  featured: boolean;
+}
 
 const CareGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [careGuides, setCareGuides] = useState<CareGuide[]>([]);
+  const [featuredArticles, setFeaturedArticles] = useState<CareGuide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchCareGuides();
+  }, []);
+
+  const fetchCareGuides = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('care_guides')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching care guides:', error);
+        throw error;
+      }
+
+      setCareGuides(data || []);
+      setFeaturedArticles((data || []).filter(guide => guide.featured));
+    } catch (error) {
+      console.error('Error fetching care guides:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách hướng dẫn chăm sóc",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredGuides = activeTab === 'all' 
     ? careGuides.filter(guide => 
@@ -100,6 +82,22 @@ const CareGuide = () => {
         (guide.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
          guide.excerpt.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="bg-nature-50 py-12">
+          <div className="container mx-auto px-4">
+            <div className="text-center py-16">
+              <p className="text-gray-500">Đang tải hướng dẫn chăm sóc...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -129,29 +127,32 @@ const CareGuide = () => {
           </div>
           
           {/* Featured Articles */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Bài viết nổi bật</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {featuredArticles.map((article) => (
-                <Link to={`/care-guide/${article.slug}`} key={article.id} className="group">
-                  <div className="relative h-64 overflow-hidden rounded-lg">
-                    <img 
-                      src={article.imageUrl} 
-                      alt={article.title}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="text-xl font-medium text-white">{article.title}</h3>
-                      <Button variant="outline" className="mt-3 bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30">
-                        Đọc ngay
-                      </Button>
+          {searchTerm === '' && featuredArticles.length > 0 && (
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold mb-6">Bài viết nổi bật</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {featuredArticles.map((article) => (
+                  <Link to={`/care-guide/${article.slug}`} key={article.id} className="group">
+                    <div className="relative h-64 overflow-hidden rounded-lg">
+                      <img 
+                        src={article.image_url} 
+                        alt={article.title}
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-medium text-white">{article.title}</h3>
+                        <p className="text-white/80 text-sm mb-3 line-clamp-2">{article.excerpt}</p>
+                        <Button variant="outline" className="mt-3 bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30">
+                          Đọc ngay
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Categories Tabs */}
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
@@ -174,7 +175,7 @@ const CareGuide = () => {
                     <Link to={`/care-guide/${guide.slug}`}>
                       <div className="h-48 overflow-hidden">
                         <img 
-                          src={guide.imageUrl} 
+                          src={guide.image_url} 
                           alt={guide.title} 
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
@@ -209,7 +210,7 @@ const CareGuide = () => {
                       <Link to={`/care-guide/${guide.slug}`}>
                         <div className="h-48 overflow-hidden">
                           <img 
-                            src={guide.imageUrl} 
+                            src={guide.image_url} 
                             alt={guide.title} 
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                           />

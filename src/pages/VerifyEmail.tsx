@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Mail } from 'lucide-react';
 
 const VerifyEmail = () => {
-  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(60);
   const location = useLocation();
@@ -33,34 +34,10 @@ const VerifyEmail = () => {
     };
   }, [email, navigate, resendCountdown]);
 
-  const handleInputChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.slice(0, 1);
-    }
-    
-    const newCode = [...verificationCode];
-    newCode[index] = value;
-    setVerificationCode(newCode);
-    
-    // Auto-focus to next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`code-${index + 1}`);
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
-      const prevInput = document.getElementById(`code-${index - 1}`);
-      if (prevInput) prevInput.focus();
-    }
-  };
-
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    const code = verificationCode.join('');
     
-    if (code.length !== 6) {
+    if (verificationCode.length !== 6) {
       toast.error("Vui lòng nhập đầy đủ mã xác nhận!");
       return;
     }
@@ -102,27 +79,27 @@ const VerifyEmail = () => {
                   <label className="text-sm font-medium text-center block mb-3">
                     Nhập mã xác nhận gồm 6 chữ số
                   </label>
-                  <div className="flex justify-between gap-2">
-                    {verificationCode.map((digit, index) => (
-                      <input
-                        key={index}
-                        id={`code-${index}`}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleInputChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        className="w-12 h-12 text-center text-xl font-bold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nature-500"
-                        required
-                      />
-                    ))}
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(value) => setVerificationCode(value)}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
                   </div>
                 </div>
                 <Button
                   type="submit"
                   className="w-full bg-nature-600 hover:bg-nature-700"
-                  disabled={isLoading}
+                  disabled={isLoading || verificationCode.length !== 6}
                 >
                   {isLoading ? "Đang xác nhận..." : "Xác nhận"}
                 </Button>
