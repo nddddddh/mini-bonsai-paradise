@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -8,85 +8,131 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
-// Collection data
-const collections = [
-  {
-    id: 1,
-    name: "Cây Lọc Không Khí",
-    slug: "cay-loc-khong-khi",
-    description: "Những loại cây giúp làm sạch không khí và loại bỏ độc tố",
-    imageUrl: "https://images.unsplash.com/photo-1463320898484-cdee8141c787?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8OHx8bG93JTIwbGlnaHQlMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 12,
-    featured: true
-  },
-  {
-    id: 2,
-    name: "Cây Ít Ánh Sáng",
-    slug: "cay-it-anh-sang",
-    description: "Những loài cây phù hợp với không gian thiếu sáng",
-    imageUrl: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8cGxhbnRzJTIwbG93JTIwbGlnaHR8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 9,
-    featured: true
-  },
-  {
-    id: 3,
-    name: "Cây Nhiệt Đới",
-    slug: "cay-nhiet-doi",
-    description: "Các loại cây nhiệt đới mang lại không khí nghỉ dưỡng",
-    imageUrl: "https://images.unsplash.com/photo-1545165375-7c5dca4ea10c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8dHJvcGljYWwlMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 15,
-    featured: false
-  },
-  {
-    id: 4,
-    name: "Cây Mọng Nước",
-    slug: "cay-mong-nuoc",
-    description: "Các loài xương rồng và sen đá dễ chăm sóc",
-    imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fHN1Y2N1bGVudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 18,
-    featured: true
-  },
-  {
-    id: 5,
-    name: "Cây Cho Người Mới Bắt Đầu",
-    slug: "cay-cho-nguoi-moi",
-    description: "Các loài cây dễ sống, phù hợp cho người mới chăm cây",
-    imageUrl: "https://images.unsplash.com/photo-1512428813834-c702c7702b78?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fGVhc3klMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 10,
-    featured: false
-  },
-  {
-    id: 6,
-    name: "Cây Nở Hoa",
-    slug: "cay-no-hoa",
-    description: "Các loài cây ra hoa đẹp trong không gian sống",
-    imageUrl: "https://images.unsplash.com/photo-1520302519238-872fe1d8c9cc?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8Zmxvd2VyaW5nJTIwcGxhbnRzfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    itemCount: 8,
-    featured: false
-  },
-  {
-    id: 7,
-    name: "Cây Treo",
-    slug: "cay-treo",
-    description: "Các loại cây phù hợp cho treo trên cao hoặc trang trí giá treo",
-    imageUrl: "https://images.unsplash.com/photo-1600411833196-7c1f6b1a8b90?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fGhhbmdpbmclMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    itemCount: 7,
-    featured: false
-  },
-  {
-    id: 8,
-    name: "Cây Văn Phòng",
-    slug: "cay-van-phong",
-    description: "Các loại cây phù hợp cho môi trường văn phòng",
-    imageUrl: "https://images.unsplash.com/photo-1524397057410-1e775ed476f3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8b2ZmaWNlJTIwcGxhbnRzfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    itemCount: 11,
-    featured: false
-  }
-];
+interface Collection {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl: string;
+  itemCount: number;
+  featured: boolean;
+}
 
 const Collections = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  const fetchCollections = async () => {
+    try {
+      setLoading(true);
+      
+      // Lấy tất cả categories và đếm số lượng sản phẩm từ bảng products
+      const { data, error } = await supabase
+        .from('products')
+        .select('category')
+        .order('category');
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+
+      // Nhóm theo category và đếm số lượng
+      const categoryMap = new Map<string, number>();
+      data?.forEach(product => {
+        const count = categoryMap.get(product.category) || 0;
+        categoryMap.set(product.category, count + 1);
+      });
+
+      // Tạo collections từ categories
+      const collectionsData: Collection[] = Array.from(categoryMap.entries()).map(([category, count]) => {
+        const slug = category.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+          .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+          .replace(/[ìíịỉĩ]/g, 'i')
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+          .replace(/[ùúụủũưừứựửữ]/g, 'u')
+          .replace(/[ỳýỵỷỹ]/g, 'y')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9-]/g, '');
+
+        // Định nghĩa ảnh và mô tả cho từng category
+        const getCategoryInfo = (categoryName: string) => {
+          switch (categoryName) {
+            case 'Terrarium':
+              return {
+                description: 'Những khu rừng thu nhỏ trong bình thủy tinh tuyệt đẹp',
+                imageUrl: 'https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80',
+                featured: true
+              };
+            case 'Bonsai':
+              return {
+                description: 'Nghệ thuật bonsai Nhật Bản tinh tế và thanh lịch',
+                imageUrl: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80',
+                featured: true
+              };
+            case 'Sen Đá':
+              return {
+                description: 'Các loài xương rồng và sen đá dễ chăm sóc',
+                imageUrl: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80',
+                featured: true
+              };
+            case 'Cây Không Khí':
+              return {
+                description: 'Cây không cần đất, tạo điểm nhấn độc đáo',
+                imageUrl: 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80',
+                featured: true
+              };
+            case 'Phụ Kiện':
+              return {
+                description: 'Dụng cụ và phụ kiện chăm sóc cây cảnh',
+                imageUrl: 'https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80',
+                featured: false
+              };
+            default:
+              return {
+                description: `Bộ sưu tập ${categoryName.toLowerCase()}`,
+                imageUrl: 'https://images.unsplash.com/photo-1466781783364-36c955e42a7d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2071&q=80',
+                featured: false
+              };
+          }
+        };
+
+        const categoryInfo = getCategoryInfo(category);
+
+        return {
+          id: slug,
+          name: category,
+          slug,
+          description: categoryInfo.description,
+          imageUrl: categoryInfo.imageUrl,
+          itemCount: count,
+          featured: categoryInfo.featured
+        };
+      });
+
+      setCollections(collectionsData);
+    } catch (error) {
+      console.error('Error fetching collections:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách bộ sưu tập",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const filteredCollections = collections.filter(collection => 
     collection.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -94,6 +140,22 @@ const Collections = () => {
   );
   
   const featuredCollections = collections.filter(collection => collection.featured);
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="bg-nature-50 py-12">
+          <div className="container mx-auto px-4">
+            <div className="text-center py-16">
+              <p className="text-gray-500">Đang tải bộ sưu tập...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
   
   return (
     <>
@@ -123,12 +185,12 @@ const Collections = () => {
           </div>
           
           {/* Featured Collections */}
-          {searchTerm === '' && (
+          {searchTerm === '' && featuredCollections.length > 0 && (
             <div className="mb-16">
               <h2 className="text-2xl font-bold mb-6">Bộ sưu tập nổi bật</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featuredCollections.map((collection) => (
-                  <Link to={`/collections/${collection.slug}`} key={collection.id} className="group">
+                  <Link to={`/category/${collection.slug}`} key={collection.id} className="group">
                     <div className="relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow">
                       <AspectRatio ratio={16/9}>
                         <img
@@ -158,7 +220,7 @@ const Collections = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredCollections.map((collection) => (
                 <Card key={collection.id} className="overflow-hidden hover:shadow-md transition-shadow group">
-                  <Link to={`/collections/${collection.slug}`}>
+                  <Link to={`/category/${collection.slug}`}>
                     <div className="relative h-48 overflow-hidden">
                       <img
                         src={collection.imageUrl}
