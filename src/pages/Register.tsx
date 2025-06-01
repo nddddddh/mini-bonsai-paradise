@@ -1,154 +1,387 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User } from "lucide-react";
-import { toast } from "sonner";
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useOTP } from '@/hooks/useOTP';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { sendOTP, verifyOTP, loading: otpLoading } = useOTP();
+  
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    phone: '',
+    address: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otp, setOtp] = useState('');
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast.error("Mật khẩu không khớp!");
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // In a real app, this would register with a backend
-    // This is just a simulation
-    setTimeout(() => {
-      toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.");
-      navigate('/verify-email', { state: { email } });
-      setIsLoading(false);
-    }, 1500);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  return (
-    <>
-      <Navbar />
-      <div className="container mx-auto py-16 px-4">
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">Đăng ký tài khoản</CardTitle>
-              <CardDescription className="text-center">
-                Nhập thông tin của bạn để tạo tài khoản
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Họ và tên</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="name"
-                      placeholder="Nguyễn Văn A"
-                      className="pl-10"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mật khẩu</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="terms" required />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Tôi đồng ý với{" "}
-                    <Link to="/terms" className="text-nature-600 hover:text-nature-700">
-                      điều khoản
-                    </Link>{" "}
-                    và{" "}
-                    <Link to="/privacy" className="text-nature-600 hover:text-nature-700">
-                      chính sách
-                    </Link>
-                  </label>
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-nature-600 hover:bg-nature-700"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Đang đăng ký..." : "Đăng ký"}
-                </Button>
-              </form>
-            </CardContent>
-            <CardFooter className="flex flex-col items-center">
-              <div className="text-sm text-gray-600">
-                Đã có tài khoản?{" "}
-                <Link to="/login" className="font-semibold text-nature-600 hover:text-nature-700">
-                  Đăng nhập
-                </Link>
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
+  const validateForm = () => {
+    if (!formData.username || !formData.email || !formData.password || !formData.fullName) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ thông tin bắt buộc",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu xác nhận không khớp",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu phải có ít nhất 6 ký tự",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Lỗi",
+        description: "Email không hợp lệ",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSendOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    // Check if username or email already exists
+    const { data: existingUser } = await supabase
+      .from('accounts')
+      .select('username, email')
+      .or(`username.eq.${formData.username},email.eq.${formData.email}`)
+      .single();
+
+    if (existingUser) {
+      toast({
+        title: "Lỗi",
+        description: "Tên đăng nhập hoặc email đã tồn tại",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await sendOTP(formData.email, 'register');
+    if (success) {
+      setStep('otp');
+    }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    if (otp.length !== 6) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập đủ 6 số OTP",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Verify OTP first
+      const otpVerified = await verifyOTP(formData.email, otp, 'register');
+      
+      if (!otpVerified) {
+        setLoading(false);
+        return;
+      }
+
+      // If OTP is verified, create the account
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert({
+          username: formData.username,
+          email: formData.email,
+          password_hash: formData.password, // In production, hash this password
+          full_name: formData.fullName,
+          phone: formData.phone || null,
+          address: formData.address || null,
+          role: 1 // Customer role
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Registration error:', error);
+        toast({
+          title: "Lỗi đăng ký",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Đăng ký thành công",
+        description: "Tài khoản đã được tạo thành công!",
+      });
+
+      navigate('/login');
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Lỗi",
+        description: "Có lỗi xảy ra trong quá trình đăng ký",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    await sendOTP(formData.email, 'register');
+  };
+
+  if (step === 'otp') {
+    return (
+      <div className="min-h-screen bg-nature-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Xác thực OTP</CardTitle>
+            <CardDescription>
+              Chúng tôi đã gửi mã OTP 6 số đến email <strong>{formData.email}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col items-center space-y-4">
+              <Label htmlFor="otp">Nhập mã OTP</Label>
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={(value) => setOtp(value)}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                onClick={handleVerifyAndRegister}
+                disabled={loading || otpLoading || otp.length !== 6}
+                className="w-full bg-nature-600 hover:bg-nature-700"
+              >
+                {loading ? 'Đang xử lý...' : 'Xác thực và tạo tài khoản'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResendOTP}
+                disabled={otpLoading}
+                className="w-full"
+              >
+                {otpLoading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setStep('form')}
+                className="w-full"
+              >
+                Quay lại form đăng ký
+              </Button>
+            </div>
+
+            <div className="text-center text-sm text-gray-600">
+              Mã OTP có hiệu lực trong 5 phút
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <Footer />
-    </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-nature-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Đăng ký tài khoản</CardTitle>
+          <CardDescription>Tạo tài khoản mới để bắt đầu mua sắm</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSendOTP} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Tên đăng nhập *</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Họ và tên *</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Số điện thoại</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                name="address"
+                type="text"
+                value={formData.address}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Mật khẩu *</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-nature-600 hover:bg-nature-700"
+              disabled={otpLoading}
+            >
+              {otpLoading ? 'Đang gửi OTP...' : 'Gửi mã OTP'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Đã có tài khoản?{' '}
+              <Link to="/login" className="text-nature-600 hover:underline font-medium">
+                Đăng nhập ngay
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
