@@ -8,16 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useOTP } from '@/hooks/useOTP';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 
 const Register = () => {
   const navigate = useNavigate();
-  const { sendOTP, verifyOTP, loading: otpLoading } = useOTP();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -31,8 +24,6 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [otp, setOtp] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -80,54 +71,31 @@ const Register = () => {
     return true;
   };
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    // Check if username or email already exists
-    const { data: existingUser } = await supabase
-      .from('accounts')
-      .select('username, email')
-      .or(`username.eq.${formData.username},email.eq.${formData.email}`)
-      .single();
-
-    if (existingUser) {
-      toast({
-        title: "Lỗi",
-        description: "Tên đăng nhập hoặc email đã tồn tại",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const success = await sendOTP(formData.email, 'register');
-    if (success) {
-      setStep('otp');
-    }
-  };
-
-  const handleVerifyAndRegister = async () => {
-    if (otp.length !== 6) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập đủ 6 số OTP",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // Verify OTP first
-      const otpVerified = await verifyOTP(formData.email, otp, 'register');
-      
-      if (!otpVerified) {
+      // Check if username or email already exists
+      const { data: existingUser } = await supabase
+        .from('accounts')
+        .select('username, email')
+        .or(`username.eq.${formData.username},email.eq.${formData.email}`)
+        .single();
+
+      if (existingUser) {
+        toast({
+          title: "Lỗi",
+          description: "Tên đăng nhập hoặc email đã tồn tại",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
 
-      // If OTP is verified, create the account
+      // Create the account directly
       const { data, error } = await supabase
         .from('accounts')
         .insert({
@@ -170,77 +138,6 @@ const Register = () => {
     }
   };
 
-  const handleResendOTP = async () => {
-    await sendOTP(formData.email, 'register');
-  };
-
-  if (step === 'otp') {
-    return (
-      <div className="min-h-screen bg-nature-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Xác thực OTP</CardTitle>
-            <CardDescription>
-              Chúng tôi đã gửi mã OTP 6 số đến email <strong>{formData.email}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col items-center space-y-4">
-              <Label htmlFor="otp">Nhập mã OTP</Label>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(value) => setOtp(value)}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-
-            <div className="space-y-3">
-              <Button 
-                onClick={handleVerifyAndRegister}
-                disabled={loading || otpLoading || otp.length !== 6}
-                className="w-full bg-nature-600 hover:bg-nature-700"
-              >
-                {loading ? 'Đang xử lý...' : 'Xác thực và tạo tài khoản'}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleResendOTP}
-                disabled={otpLoading}
-                className="w-full"
-              >
-                {otpLoading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep('form')}
-                className="w-full"
-              >
-                Quay lại form đăng ký
-              </Button>
-            </div>
-
-            <div className="text-center text-sm text-gray-600">
-              Mã OTP có hiệu lực trong 5 phút
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-nature-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -249,7 +146,7 @@ const Register = () => {
           <CardDescription>Tạo tài khoản mới để bắt đầu mua sắm</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSendOTP} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Tên đăng nhập *</Label>
               <Input
@@ -365,9 +262,9 @@ const Register = () => {
             <Button 
               type="submit" 
               className="w-full bg-nature-600 hover:bg-nature-700"
-              disabled={otpLoading}
+              disabled={loading}
             >
-              {otpLoading ? 'Đang gửi OTP...' : 'Gửi mã OTP'}
+              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
             </Button>
           </form>
 

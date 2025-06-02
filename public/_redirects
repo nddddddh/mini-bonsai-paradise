@@ -1,2 +1,12 @@
 
+# Redirect rules for clean URLs
+/register    /register.html    200
+/login       /login.html       200
+/products    /products.html    200
+/about       /about.html       200
+/cart        /cart.html        200
+/profile     /profile.html     200
+/admin       /admin.html       200
+
+# SPA fallback
 /*    /index.html   200
