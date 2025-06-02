@@ -237,6 +237,36 @@ export type Database = {
           },
         ]
       }
+      otp_verifications: {
+        Row: {
+          action: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp: string
+          used: boolean
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          otp: string
+          used?: boolean
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string
