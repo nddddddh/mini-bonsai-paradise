@@ -1,4 +1,3 @@
-
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -59,7 +58,7 @@ const CareGuideDetail = () => {
         if (articleData) {
           const { data: relatedData, error: relatedError } = await supabase
             .from('care_guides')
-            .select('id, title, slug, excerpt')
+            .select('*')
             .eq('category', articleData.category)
             .neq('id', articleData.id)
             .limit(2);
@@ -213,6 +212,11 @@ const CareGuideDetail = () => {
                   {relatedArticles.map((related) => (
                     <Link key={related.id} to={`/care-guide/${related.slug}`} className="group">
                       <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                        <img 
+                          src={related.image_url} 
+                          alt={related.title}
+                          className="w-full h-40 object-cover"
+                        />
                         <div className="p-5">
                           <h3 className="text-lg font-medium group-hover:text-nature-600 transition-colors">
                             {related.title}
