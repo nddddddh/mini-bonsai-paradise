@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -14,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping - update để match với database
+// Collection info mapping
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -42,15 +41,27 @@ const getCollectionInfo = (categorySlug: string) => {
       imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80"
     },
     "trong-nha": {
-      name: "Trong Nhà",
+      name: "Trong nhà",
       description: "Cây cảnh trong nhà, lọc không khí tự nhiên",
       longDescription: "Bộ sưu tập cây trong nhà gồm các loại cây thích hợp với điều kiện ánh sáng trong nhà, có khả năng lọc không khí và tạo không gian xanh mát cho ngôi nhà của bạn.",
       imageUrl: "https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
     },
-    "treo": {
-      name: "Treo",
-      description: "Cây treo trang trí, tiết kiệm không gian",
-      longDescription: "Bộ sưu tập cây treo phù hợp để trang trí không gian trên cao, tạo điểm nhấn xanh mát và tiết kiệm diện tích cho không gian sống của bạn.",
+    "sen-da": {
+      name: "Sen Đá",
+      description: "Cây sen đá xinh xắn, dễ chăm sóc",
+      longDescription: "Bộ sưu tập sen đá với nhiều hình dáng và màu sắc khác nhau, rất dễ chăm sóc và phù hợp với người bận rộn.",
+      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
+    },
+    "cay-khong-khi": {
+      name: "Cây Không Khí",
+      description: "Cây không khí độc đáo, không cần đất",
+      longDescription: "Bộ sưu tập cây không khí (Air Plants) độc đáo, không cần trồng trong đất mà chỉ cần phun sương thường xuyên.",
+      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
+    },
+    "phu-kien": {
+      name: "Phụ Kiện",
+      description: "Phụ kiện chăm sóc cây cảnh",
+      longDescription: "Bộ sưu tập các phụ kiện cần thiết cho việc chăm sóc cây cảnh như chậu, phân bón, dụng cụ tưới.",
       imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
     }
   };
@@ -58,22 +69,29 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Convert category slug to category name for database query - cập nhật để match với database
-const getCategoryName = (slug: string) => {
-  const mapping = {
-    "terrarium": "Terrarium",
-    "bonsai": "Bonsai", 
-    "mini": "Mini",
-    "phong-thuy": ["Phong thủy", "Phong Thủy"], // Hỗ trợ cả 2 cách viết
-    "trong-nha": "Trong nhà",
-    "treo": "Treo"
+// Convert category slug to search terms for database query
+const getCategorySearchTerms = (slug: string) => {
+  const mapping: Record<string, string[]> = {
+    "terrarium": ["Terrarium"],
+    "bonsai": ["Bonsai"], 
+    "mini": ["Mini"],
+    "phong-thuy": ["Phong thủy", "Phong Thủy"],
+    "trong-nha": ["Trong nhà"],
+    "sen-da": ["Sen Đá"],
+    "cay-khong-khi": ["Cây Không Khí"],
+    "phu-kien": ["Phụ Kiện"]
   };
-  return mapping[slug as keyof typeof mapping] || null;
+  
+  // Decode URL encoding
+  const decodedSlug = decodeURIComponent(slug);
+  console.log('Original slug:', slug, 'Decoded slug:', decodedSlug);
+  
+  return mapping[decodedSlug] || mapping[slug] || [];
 };
 
-// Filter options - these could be dynamic based on actual data
+// Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Treo"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -105,8 +123,11 @@ const CollectionDetail = () => {
       
       if (!category) return;
 
+      console.log('Category from URL:', category);
+      console.log('Decoded category:', decodeURIComponent(category));
+
       // Get collection info
-      const collectionInfo = getCollectionInfo(category);
+      const collectionInfo = getCollectionInfo(decodeURIComponent(category));
       if (!collectionInfo) {
         setCollection(null);
         setLoading(false);
@@ -115,25 +136,36 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Get category name for database query
-      const categoryName = getCategoryName(category);
-      if (!categoryName) {
+      // Get search terms for database query
+      const searchTerms = getCategorySearchTerms(category);
+      console.log('Search terms:', searchTerms);
+
+      if (searchTerms.length === 0) {
+        console.log('No search terms found for category:', category);
         setProducts([]);
         setLoading(false);
         return;
       }
 
-      console.log('Searching for category:', categoryName);
+      // Fetch all products first to debug
+      const { data: allProducts, error: allError } = await supabase
+        .from('products')
+        .select('*');
+      
+      if (allError) {
+        console.error('Error fetching all products:', allError);
+      } else {
+        console.log('All products in database:', allProducts);
+        console.log('Unique categories:', [...new Set(allProducts?.map(p => p.category))]);
+      }
 
-      // Fetch products from database - hỗ trợ tìm theo nhiều tên category
+      // Fetch products with exact category match
       let query = supabase.from('products').select('*');
       
-      if (Array.isArray(categoryName)) {
-        // Nếu có nhiều tên category (như Phong thủy), tìm theo tất cả
-        query = query.in('category', categoryName);
+      if (searchTerms.length === 1) {
+        query = query.eq('category', searchTerms[0]);
       } else {
-        // Nếu chỉ có một tên category
-        query = query.eq('category', categoryName);
+        query = query.in('category', searchTerms);
       }
 
       const { data, error } = await query.order('product_id', { ascending: false });
