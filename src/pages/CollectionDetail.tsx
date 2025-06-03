@@ -10,127 +10,63 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { Product } from '@/types/supabase';
 
-// Collection data
-const collections = {
-  "cay-loc-khong-khi": {
-    id: 1,
-    name: "Cây Lọc Không Khí",
-    description: "Những loại cây giúp làm sạch không khí và loại bỏ độc tố",
-    longDescription: "Các loại cây trong bộ sưu tập này được NASA công nhận có khả năng lọc không khí, loại bỏ các chất độc hại như formaldehyde, benzene và trichloroethylene. Chúng là lựa chọn tuyệt vời để cải thiện chất lượng không khí trong nhà hoặc văn phòng.",
-    imageUrl: "https://images.unsplash.com/photo-1463320898484-cdee8141c787?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8OHx8bG93JTIwbGlnaHQlMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60"
-  },
-  "cay-it-anh-sang": {
-    id: 2,
-    name: "Cây Ít Ánh Sáng",
-    description: "Những loài cây phù hợp với không gian thiếu sáng",
-    longDescription: "Bộ sưu tập này bao gồm những loài cây có khả năng sinh trưởng tốt trong điều kiện ánh sáng thấp. Đây là lựa chọn lý tưởng cho các căn hộ hoặc văn phòng thiếu ánh sáng tự nhiên. Những loài cây này thường có nguồn gốc từ tầng dưới của rừng nhiệt đới, nơi chúng đã thích nghi với điều kiện ánh sáng yếu.",
-    imageUrl: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8cGxhbnRzJTIwbG93JTIwbGlnaHR8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60"
-  },
-  "cay-mong-nuoc": {
-    id: 4,
-    name: "Cây Mọng Nước",
-    description: "Các loài xương rồng và sen đá dễ chăm sóc",
-    longDescription: "Bộ sưu tập cây mọng nước bao gồm xương rồng và các loại sen đá đa dạng về màu sắc và hình dáng. Chúng nổi tiếng với khả năng chịu hạn cao, dễ chăm sóc và có thể tồn tại trong điều kiện khắc nghiệt. Đây là lựa chọn tuyệt vời cho những người bận rộn hoặc người mới bắt đầu trồng cây.",
-    imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fHN1Y2N1bGVudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60"
-  }
+// Collection info mapping
+const getCollectionInfo = (categorySlug: string) => {
+  const collections = {
+    "terrarium": {
+      name: "Terrarium",
+      description: "Những khu rừng thu nhỏ trong bình thủy tinh tuyệt đẹp",
+      longDescription: "Terrarium là nghệ thuật tạo ra những khu vườn thu nhỏ trong các bình thủy tinh kín hoặc hở. Chúng tạo ra một hệ sinh thái tự cân bằng, là lựa chọn tuyệt vời cho những người yêu thích thiên nhiên nhưng có không gian hạn chế.",
+      imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
+    },
+    "bonsai": {
+      name: "Bonsai", 
+      description: "Nghệ thuật bonsai Nhật Bản tinh tế và thanh lịch",
+      longDescription: "Bonsai là nghệ thuật trồng và tạo hình cây cảnh trong chậu nhỏ, có nguồn gốc từ Nhật Bản. Mỗi cây bonsai là một tác phẩm nghệ thuật sống, thể hiện sự kiên nhẫn, kỹ thuật và tình yêu với thiên nhiên.",
+      imageUrl: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80"
+    },
+    "sen-da": {
+      name: "Sen Đá",
+      description: "Các loài xương rồng và sen đá dễ chăm sóc", 
+      longDescription: "Bộ sưu tập sen đá bao gồm các loại cây mọng nước đa dạng về màu sắc và hình dáng. Chúng nổi tiếng với khả năng chịu hạn cao, dễ chăm sóc và có thể tồn tại trong điều kiện khắc nghiệt.",
+      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
+    },
+    "cay-khong-khi": {
+      name: "Cây Không Khí",
+      description: "Cây không cần đất, tạo điểm nhấn độc đáo",
+      longDescription: "Cây không khí (Air Plants) là những loài cây độc đáo không cần đất để sinh trưởng. Chúng hấp thụ nước và chất dinh dưỡng từ không khí, tạo ra những cách trang trí độc đáo và hiện đại.",
+      imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80"
+    },
+    "phu-kien": {
+      name: "Phụ Kiện",
+      description: "Dụng cụ và phụ kiện chăm sóc cây cảnh",
+      longDescription: "Bộ sưu tập phụ kiện bao gồm các dụng cụ chăm sóc cây, chậu cây, đất trồng, phân bón và các vật dụng trang trí khác giúp bạn chăm sóc cây cảnh một cách tốt nhất.",
+      imageUrl: "https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
+    }
+  };
+
+  return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Sample plants data for collections
-const plantsData = [
-  {
-    id: 1,
-    name: "Cây Trầu Bà Lá Xẻ",
-    latinName: "Monstera Deliciosa",
-    price: 450000,
-    imageUrl: "https://images.unsplash.com/photo-1614594975525-e45190c55d0b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8bW9uc3RlcmElMjBwbGFudHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-loc-khong-khi", "cay-it-anh-sang"],
-    category: "Cây lá",
-    careLevel: "Dễ chăm sóc",
-    size: "Trung bình"
-  },
-  {
-    id: 2,
-    name: "Cây Cọ Nhện",
-    latinName: "Chlorophytum Comosum",
-    price: 120000,
-    imageUrl: "https://images.unsplash.com/photo-1656618020911-1c7a937175fd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NHx8c3BpZGVyJTIwcGxhbnR8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-loc-khong-khi"],
-    category: "Cây lá",
-    careLevel: "Rất dễ chăm sóc",
-    size: "Nhỏ"
-  },
-  {
-    id: 3,
-    name: "Cây Lưỡi Hổ",
-    latinName: "Sansevieria Trifasciata",
-    price: 180000,
-    imageUrl: "https://images.unsplash.com/photo-1593482892290-f54c7f8ed8a9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8c25ha2UlMjBwbGFudHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-loc-khong-khi", "cay-it-anh-sang"],
-    category: "Cây lá",
-    careLevel: "Rất dễ chăm sóc",
-    size: "Trung bình"
-  },
-  {
-    id: 4,
-    name: "Sen Đá Hoa Hồng",
-    latinName: "Echeveria Elegans",
-    price: 90000,
-    imageUrl: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8cm9zZSUyMHN1Y2N1bGVudHxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-mong-nuoc"],
-    category: "Sen đá",
-    careLevel: "Dễ chăm sóc",
-    size: "Nhỏ"
-  },
-  {
-    id: 5,
-    name: "Xương Rồng Tai Thỏ",
-    latinName: "Opuntia Microdasys",
-    price: 150000,
-    imageUrl: "https://images.unsplash.com/photo-1504648184249-2940820656e9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8OHx8Y2FjdHVzfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-mong-nuoc"],
-    category: "Xương rồng",
-    careLevel: "Dễ chăm sóc",
-    size: "Nhỏ"
-  },
-  {
-    id: 6,
-    name: "Cây Huyền Diệp",
-    latinName: "Zamioculcas Zamiifolia",
-    price: 250000,
-    imageUrl: "https://images.unsplash.com/photo-1632207180135-981e2db5be82?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8emFtaW9jdWxjYXN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-loc-khong-khi", "cay-it-anh-sang"],
-    category: "Cây lá",
-    careLevel: "Rất dễ chăm sóc",
-    size: "Trung bình"
-  },
-  {
-    id: 7,
-    name: "Cây Bạch Mã Hoàng Tử",
-    latinName: "Aglaonema",
-    price: 220000,
-    imageUrl: "https://images.unsplash.com/photo-1600411833196-7c1f6b1a8b90?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fGhhbmdpbmclMjBwbGFudHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-loc-khong-khi", "cay-it-anh-sang"],
-    category: "Cây lá",
-    careLevel: "Dễ chăm sóc",
-    size: "Trung bình"
-  },
-  {
-    id: 8,
-    name: "Sen Đá Đuôi Công",
-    latinName: "Crassula Perforata",
-    price: 110000,
-    imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NXx8c3RyaW5nJTIwb2YlMjBwZWFybHN8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60",
-    collections: ["cay-mong-nuoc"],
-    category: "Sen đá",
-    careLevel: "Dễ chăm sóc",
-    size: "Nhỏ"
-  }
-];
+// Convert category slug to category name for database query
+const getCategoryName = (slug: string) => {
+  const mapping = {
+    "terrarium": "Terrarium",
+    "bonsai": "Bonsai", 
+    "sen-da": "Sen Đá",
+    "cay-khong-khi": "Cây Không Khí",
+    "phu-kien": "Phụ Kiện"
+  };
+  return mapping[slug as keyof typeof mapping] || null;
+};
 
-// Filter options
+// Filter options - these could be dynamic based on actual data
 const filterOptions = {
-  category: ["Cây lá", "Sen đá", "Xương rồng", "Cây thân cỏ", "Cây thân gỗ"],
+  category: ["Terrarium", "Bonsai", "Sen Đá", "Cây Không Khí", "Phụ Kiện"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -138,7 +74,8 @@ const filterOptions = {
 const CollectionDetail = () => {
   const { category } = useParams<{ category: string }>();
   const [collection, setCollection] = useState<any>(null);
-  const [plants, setPlants] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, string[]>>({
     category: [],
     careLevel: [],
@@ -146,41 +83,88 @@ const CollectionDetail = () => {
   });
   const [sortOption, setSortOption] = useState("featured");
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const { toast } = useToast();
   
   useEffect(() => {
-    // In a real app, this would fetch data from an API
-    // Here we're just simulating with the sample data
-    if (category && collections[category as keyof typeof collections]) {
-      setCollection(collections[category as keyof typeof collections]);
-      
-      // Filter plants by collection
-      const filteredPlants = plantsData.filter(plant => 
-        plant.collections.includes(category)
-      );
-      setPlants(filteredPlants);
+    if (category) {
+      fetchCollectionData();
     }
-    
-    // Scroll to top on page load
     window.scrollTo(0, 0);
   }, [category]);
+
+  const fetchCollectionData = async () => {
+    try {
+      setLoading(true);
+      
+      if (!category) return;
+
+      // Get collection info
+      const collectionInfo = getCollectionInfo(category);
+      if (!collectionInfo) {
+        setCollection(null);
+        setLoading(false);
+        return;
+      }
+
+      setCollection(collectionInfo);
+
+      // Get category name for database query
+      const categoryName = getCategoryName(category);
+      if (!categoryName) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch products from database
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', categoryName)
+        .order('product_id', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+
+      setProducts(data || []);
+      
+      toast({
+        title: `Bộ sưu tập: ${collectionInfo.name}`,
+        description: `Đã tìm thấy ${data?.length || 0} sản phẩm trong bộ sưu tập này`,
+        duration: 3000,
+      });
+
+    } catch (error) {
+      console.error('Error fetching collection data:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải dữ liệu bộ sưu tập",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Apply filters
-  const filteredPlants = plants.filter(plant => {
-    // Check if plant passes all active filters
+  const filteredProducts = products.filter(product => {
+    // Check if product passes all active filters
     for (const [filterType, activeValues] of Object.entries(filters)) {
       // Skip if no active values for this filter type
       if (activeValues.length === 0) continue;
       
-      // Check if plant matches any of the active values for this filter
-      if (!activeValues.includes(plant[filterType as keyof typeof plant] as string)) {
+      // For now, we only have category filter working with database
+      if (filterType === 'category' && !activeValues.includes(product.category)) {
         return false;
       }
     }
     return true;
   });
   
-  // Sort plants
-  const sortedPlants = [...filteredPlants].sort((a, b) => {
+  // Sort products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortOption) {
       case "price-asc":
         return a.price - b.price;
@@ -224,6 +208,20 @@ const CollectionDetail = () => {
   const activeFilterCount = Object.values(filters).reduce(
     (total, filterValues) => total + filterValues.length, 0
   );
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container mx-auto py-16 px-4 min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-500">Đang tải bộ sưu tập...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
   
   if (!collection) {
     return (
@@ -268,7 +266,7 @@ const CollectionDetail = () => {
                   <p className="text-gray-600 mt-2">{collection.description}</p>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {sortedPlants.length} sản phẩm
+                  {sortedProducts.length} sản phẩm
                 </div>
               </div>
               
@@ -374,60 +372,6 @@ const CollectionDetail = () => {
                     </CollapsibleContent>
                   </Collapsible>
                   
-                  {/* Care Level Filter */}
-                  <Collapsible defaultOpen>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-left font-medium py-2 border-t border-gray-200">
-                      <span>Mức độ chăm sóc</span>
-                      <span className="text-lg">+</span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pb-3">
-                      <div className="space-y-2 mt-2">
-                        {filterOptions.careLevel.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`careLevel-${option}`} 
-                              checked={filters.careLevel.includes(option)}
-                              onCheckedChange={() => toggleFilter('careLevel', option)}
-                            />
-                            <label 
-                              htmlFor={`careLevel-${option}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                  
-                  {/* Size Filter */}
-                  <Collapsible defaultOpen>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-left font-medium py-2 border-t border-gray-200">
-                      <span>Kích thước</span>
-                      <span className="text-lg">+</span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pb-3">
-                      <div className="space-y-2 mt-2">
-                        {filterOptions.size.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`size-${option}`} 
-                              checked={filters.size.includes(option)}
-                              onCheckedChange={() => toggleFilter('size', option)}
-                            />
-                            <label 
-                              htmlFor={`size-${option}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                  
                   {activeFilterCount > 0 && (
                     <Button 
                       variant="outline" 
@@ -469,50 +413,6 @@ const CollectionDetail = () => {
                         ))}
                       </div>
                     </div>
-                    
-                    {/* Care Level Filter */}
-                    <div className="mb-6 border-t border-gray-200 pt-6">
-                      <h3 className="font-medium mb-3">Mức độ chăm sóc</h3>
-                      <div className="space-y-2">
-                        {filterOptions.careLevel.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`mobile-careLevel-${option}`} 
-                              checked={filters.careLevel.includes(option)}
-                              onCheckedChange={() => toggleFilter('careLevel', option)}
-                            />
-                            <label 
-                              htmlFor={`mobile-careLevel-${option}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Size Filter */}
-                    <div className="border-t border-gray-200 pt-6">
-                      <h3 className="font-medium mb-3">Kích thước</h3>
-                      <div className="space-y-2">
-                        {filterOptions.size.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`mobile-size-${option}`} 
-                              checked={filters.size.includes(option)}
-                              onCheckedChange={() => toggleFilter('size', option)}
-                            />
-                            <label 
-                              htmlFor={`mobile-size-${option}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                   
                   <div className="flex justify-between mt-4 pt-4 border-t border-gray-200">
@@ -536,25 +436,28 @@ const CollectionDetail = () => {
               
               {/* Products */}
               <div className="flex-1">
-                {sortedPlants.length > 0 ? (
+                {sortedProducts.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedPlants.map((plant) => (
-                      <Card key={plant.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
-                        <Link to={`/products/${plant.id}`}>
+                    {sortedProducts.map((product) => (
+                      <Card key={product.product_id} className="overflow-hidden hover:shadow-lg transition-shadow group">
+                        <Link to={`/products/${product.product_id}`}>
                           <AspectRatio ratio={1/1}>
                             <img
-                              src={plant.imageUrl}
-                              alt={plant.name}
+                              src={product.image_path || '/placeholder.svg'}
+                              alt={product.name}
                               className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
                             />
                           </AspectRatio>
                           <CardContent className="p-4">
-                            <div className="text-sm text-gray-500 mb-1">{plant.latinName}</div>
-                            <h3 className="font-medium text-lg group-hover:text-nature-600 transition-colors">{plant.name}</h3>
+                            <div className="text-sm text-gray-500 mb-1">{product.category}</div>
+                            <h3 className="font-medium text-lg group-hover:text-nature-600 transition-colors">{product.name}</h3>
                             <div className="flex justify-between items-center mt-2">
-                              <div className="font-semibold text-nature-700">{plant.price.toLocaleString('vi-VN')} ₫</div>
-                              <div className="text-gray-500 text-sm">{plant.careLevel}</div>
+                              <div className="font-semibold text-nature-700">{product.price.toLocaleString('vi-VN')} ₫</div>
+                              <div className="text-gray-500 text-sm">Còn {product.stock_quantity}</div>
                             </div>
+                            {product.description && (
+                              <p className="text-sm text-gray-600 mt-2 line-clamp-2">{product.description}</p>
+                            )}
                           </CardContent>
                         </Link>
                       </Card>
