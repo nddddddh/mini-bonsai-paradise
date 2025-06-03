@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping
+// Collection info mapping - update để match với database
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -29,44 +29,51 @@ const getCollectionInfo = (categorySlug: string) => {
       longDescription: "Bonsai là nghệ thuật trồng và tạo hình cây cảnh trong chậu nhỏ, có nguồn gốc từ Nhật Bản. Mỗi cây bonsai là một tác phẩm nghệ thuật sống, thể hiện sự kiên nhẫn, kỹ thuật và tình yêu với thiên nhiên.",
       imageUrl: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80"
     },
-    "sen-da": {
-      name: "Sen Đá",
-      description: "Các loài xương rồng và sen đá dễ chăm sóc", 
-      longDescription: "Bộ sưu tập sen đá bao gồm các loại cây mọng nước đa dạng về màu sắc và hình dáng. Chúng nổi tiếng với khả năng chịu hạn cao, dễ chăm sóc và có thể tồn tại trong điều kiện khắc nghiệt.",
+    "mini": {
+      name: "Mini",
+      description: "Các loài cây mini xinh xắn, phù hợp mọi không gian",
+      longDescription: "Bộ sưu tập cây mini bao gồm các loại cây nhỏ xinh, dễ chăm sóc và phù hợp với mọi không gian sống. Chúng mang lại sự tươi mới và sinh động cho ngôi nhà của bạn.",
       imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
     },
-    "cay-khong-khi": {
-      name: "Cây Không Khí",
-      description: "Cây không cần đất, tạo điểm nhấn độc đáo",
-      longDescription: "Cây không khí (Air Plants) là những loài cây độc đáo không cần đất để sinh trưởng. Chúng hấp thụ nước và chất dinh dưỡng từ không khí, tạo ra những cách trang trí độc đáo và hiện đại.",
+    "phong-thuy": {
+      name: "Phong Thủy",
+      description: "Cây phong thủy mang lại may mắn và tài lộc",
+      longDescription: "Bộ sưu tập cây phong thủy được chọn lọc kỹ lưỡng để mang lại vượng khí, tài lộc và sức khỏe cho gia chủ. Mỗi loại cây đều có ý nghĩa phong thủy riêng biệt.",
       imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80"
     },
-    "phu-kien": {
-      name: "Phụ Kiện",
-      description: "Dụng cụ và phụ kiện chăm sóc cây cảnh",
-      longDescription: "Bộ sưu tập phụ kiện bao gồm các dụng cụ chăm sóc cây, chậu cây, đất trồng, phân bón và các vật dụng trang trí khác giúp bạn chăm sóc cây cảnh một cách tốt nhất.",
+    "trong-nha": {
+      name: "Trong Nhà",
+      description: "Cây cảnh trong nhà, lọc không khí tự nhiên",
+      longDescription: "Bộ sưu tập cây trong nhà gồm các loại cây thích hợp với điều kiện ánh sáng trong nhà, có khả năng lọc không khí và tạo không gian xanh mát cho ngôi nhà của bạn.",
       imageUrl: "https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
+    },
+    "treo": {
+      name: "Treo",
+      description: "Cây treo trang trí, tiết kiệm không gian",
+      longDescription: "Bộ sưu tập cây treo phù hợp để trang trí không gian trên cao, tạo điểm nhấn xanh mát và tiết kiệm diện tích cho không gian sống của bạn.",
+      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
     }
   };
 
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Convert category slug to category name for database query
+// Convert category slug to category name for database query - cập nhật để match với database
 const getCategoryName = (slug: string) => {
   const mapping = {
     "terrarium": "Terrarium",
     "bonsai": "Bonsai", 
-    "sen-da": "Sen Đá",
-    "cay-khong-khi": "Cây Không Khí",
-    "phu-kien": "Phụ Kiện"
+    "mini": "Mini",
+    "phong-thuy": ["Phong thủy", "Phong Thủy"], // Hỗ trợ cả 2 cách viết
+    "trong-nha": "Trong nhà",
+    "treo": "Treo"
   };
   return mapping[slug as keyof typeof mapping] || null;
 };
 
 // Filter options - these could be dynamic based on actual data
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Sen Đá", "Cây Không Khí", "Phụ Kiện"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Treo"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -116,18 +123,27 @@ const CollectionDetail = () => {
         return;
       }
 
-      // Fetch products from database
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', categoryName)
-        .order('product_id', { ascending: false });
+      console.log('Searching for category:', categoryName);
+
+      // Fetch products from database - hỗ trợ tìm theo nhiều tên category
+      let query = supabase.from('products').select('*');
+      
+      if (Array.isArray(categoryName)) {
+        // Nếu có nhiều tên category (như Phong thủy), tìm theo tất cả
+        query = query.in('category', categoryName);
+      } else {
+        // Nếu chỉ có một tên category
+        query = query.eq('category', categoryName);
+      }
+
+      const { data, error } = await query.order('product_id', { ascending: false });
 
       if (error) {
         console.error('Error fetching products:', error);
         throw error;
       }
 
+      console.log('Found products:', data);
       setProducts(data || []);
       
       toast({
@@ -150,12 +166,9 @@ const CollectionDetail = () => {
   
   // Apply filters
   const filteredProducts = products.filter(product => {
-    // Check if product passes all active filters
     for (const [filterType, activeValues] of Object.entries(filters)) {
-      // Skip if no active values for this filter type
       if (activeValues.length === 0) continue;
       
-      // For now, we only have category filter working with database
       if (filterType === 'category' && !activeValues.includes(product.category)) {
         return false;
       }
@@ -163,7 +176,6 @@ const CollectionDetail = () => {
     return true;
   });
   
-  // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortOption) {
       case "price-asc":
@@ -175,7 +187,7 @@ const CollectionDetail = () => {
       case "name-desc":
         return b.name.localeCompare(a.name);
       default:
-        return 0; // Featured or default sorting
+        return 0;
     }
   });
   
