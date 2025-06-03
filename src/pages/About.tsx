@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -52,7 +51,7 @@ const About = () => {
               <h2 className="text-3xl font-bold mb-6">Câu chuyện của chúng tôi</h2>
               <div className="space-y-4">
                 <p className="text-gray-700">
-                  BonsaiHub được thành lập vào năm 2018 bởi một nhóm những người đam mê cây cảnh và thiên nhiên. Xuất phát từ một cửa hàng nhỏ tại Hà Nội, chúng tôi đã phát triển thành một trong những nhà cung cấp cây cảnh mini hàng đầu Việt Nam.
+                  BonsaiHub được thành lập vào năm 2025 bởi một nhóm những người đam mê cây cảnh và thiên nhiên. Xuất phát từ một cửa hàng nhỏ tại Hà Nội, chúng tôi đã phát triển thành một trong những nhà cung cấp cây cảnh mini hàng đầu Việt Nam.
                 </p>
                 <p className="text-gray-700">
                   Điều khiến BonsaiHub khác biệt là sự tận tâm của chúng tôi trong việc lựa chọn và chăm sóc từng cây trước khi đến tay khách hàng. Mỗi sản phẩm đều được chăm sóc cẩn thận bởi các chuyên gia có nhiều năm kinh nghiệm trong lĩnh vực bonsai và cây cảnh mini.
@@ -73,13 +72,13 @@ const About = () => {
             
             <div className="relative">
               <img 
-                src="https://images.unsplash.com/photo-1482859454392-5b7c972ab642?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
+                src="https://images.unsplash.com/photo-1721322800607-8c38375eef04?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
                 alt="Câu chuyện của BonsaiHub" 
                 className="rounded-lg shadow-lg object-cover w-full h-[400px]"
               />
               <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-lg shadow-xl hidden md:block">
-                <p className="font-bold text-nature-700">Thành lập từ 2018</p>
-                <p className="text-sm text-gray-600">5+ năm kinh nghiệm</p>
+                <p className="font-bold text-nature-700">Thành lập từ 2025</p>
+                <p className="text-sm text-gray-600">Công ty mới thành lập</p>
               </div>
             </div>
           </div>
@@ -265,7 +264,7 @@ const About = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-white rounded-lg overflow-hidden shadow-md">
               <img 
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80" 
+                src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80" 
                 alt="Nguyễn Văn An" 
                 className="w-full h-64 object-cover object-center"
               />
@@ -273,14 +272,14 @@ const About = () => {
                 <h3 className="font-semibold text-lg">Nguyễn Văn An</h3>
                 <p className="text-nature-600">Nhà sáng lập & CEO</p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Với 15 năm kinh nghiệm trong lĩnh vực cây cảnh và trang trí nội thất.
+                  Với kinh nghiệm trong lĩnh vực cây cảnh và trang trí nội thất.
                 </p>
               </div>
             </div>
             
             <div className="bg-white rounded-lg overflow-hidden shadow-md">
               <img 
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80" 
+                src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80" 
                 alt="Trần Thị Mai" 
                 className="w-full h-64 object-cover object-center"
               />
@@ -288,7 +287,7 @@ const About = () => {
                 <h3 className="font-semibold text-lg">Trần Thị Mai</h3>
                 <p className="text-nature-600">Chuyên gia Bonsai</p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Chuyên gia với hơn 10 năm trong nghệ thuật tạo hình và chăm sóc bonsai.
+                  Chuyên gia trong nghệ thuật tạo hình và chăm sóc bonsai.
                 </p>
               </div>
             </div>
