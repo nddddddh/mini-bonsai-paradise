@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping - PHẢI KHỚP VỚI URL SLUG
+// Collection info mapping - COPY LOGIC TỪ CategoryProducts.tsx
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -76,52 +76,30 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// LOGIC MỚI: Lấy tất cả categories khớp với slug và tìm sản phẩm
-const getAllPossibleCategoriesForSlug = (slug: string) => {
-  console.log('=== GETTING ALL POSSIBLE CATEGORIES FOR SLUG ===');
-  console.log('Input slug:', slug);
-  
-  const decodedSlug = decodeURIComponent(slug);
-  console.log('Decoded slug:', decodedSlug);
-  
-  // Mapping từ slug đến tất cả possible categories trong database
-  const possibleCategories: string[] = [];
-  
-  switch (decodedSlug) {
+// COPY LOGIC TỪ CategoryProducts.tsx - Convert category URL param to display name
+const getCategoryDisplayName = (category: string) => {
+  switch (category) {
     case "terrarium":
-      possibleCategories.push("Terrarium");
-      break;
+      return "Terrarium";
     case "bonsai":
-      possibleCategories.push("Bonsai");
-      break;
+      return "Bonsai";
     case "mini":
-      possibleCategories.push("Mini");
-      break;
+      return "Mini";
     case "phong-thuy":
-      // Có thể có cả 2 cách viết trong database
-      possibleCategories.push("Phong Thủy", "Phong thủy");
-      break;
+      return "Phong Thủy";
     case "trong-nha":
-      possibleCategories.push("Trong nhà");
-      break;
+      return "Trong nhà";
     case "sen-da":
-      possibleCategories.push("Sen Đá");
-      break;
+      return "Sen Đá";
     case "cay-khong-khi":
-      possibleCategories.push("Cây Không Khí");
-      break;
+      return "Cây Không Khí";
     case "phu-kien":
-      possibleCategories.push("Phụ Kiện");
-      break;
+      return "Phụ Kiện";
     case "treo":
-      possibleCategories.push("Cây Treo", "Treo");
-      break;
+      return "Cây Treo";
     default:
-      console.log('No mapping found for slug:', decodedSlug);
+      return "Sản phẩm";
   }
-  
-  console.log('Possible categories:', possibleCategories);
-  return possibleCategories;
 };
 
 // Filter options
@@ -163,14 +141,13 @@ const CollectionDetail = () => {
 
       console.log('=== COLLECTION DEBUG START ===');
       console.log('Category from URL param:', category);
-      console.log('Decoded category:', decodeURIComponent(category));
 
       // Get collection info
-      const collectionInfo = getCollectionInfo(decodeURIComponent(category));
+      const collectionInfo = getCollectionInfo(category);
       console.log('Collection info found:', collectionInfo);
       
       if (!collectionInfo) {
-        console.log('No collection info found for:', decodeURIComponent(category));
+        console.log('No collection info found for:', category);
         setCollection(null);
         setLoading(false);
         return;
@@ -178,41 +155,15 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Get all possible category names for this slug
-      const possibleCategories = getAllPossibleCategoriesForSlug(category);
+      // COPY LOGIC TỪ CategoryProducts.tsx - Sử dụng getCategoryDisplayName
+      const categoryName = getCategoryDisplayName(category);
+      console.log('Category name for database query:', categoryName);
       
-      if (possibleCategories.length === 0) {
-        console.log('No possible categories found for slug:', category);
-        setProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      // Debug: First fetch all products to see what's in database
-      console.log('=== DATABASE DEBUG ===');
-      const { data: allProducts, error: allError } = await supabase
-        .from('products')
-        .select('product_id, name, category, price, stock_quantity, image_path');
-      
-      if (allError) {
-        console.error('Error fetching all products:', allError);
-      } else {
-        console.log('All products in database:', allProducts);
-        const uniqueCategories = [...new Set(allProducts?.map(p => p.category))];
-        console.log('Unique categories in database:', uniqueCategories);
-        console.log(`Looking for categories: ${possibleCategories.join(', ')}`);
-        
-        const matchingProducts = allProducts?.filter(p => possibleCategories.includes(p.category));
-        console.log('Products matching any possible category:', matchingProducts);
-        console.log('Number of matching products:', matchingProducts?.length || 0);
-      }
-
-      // Fetch products với điều kiện OR cho tất cả possible categories
-      console.log('=== MAIN QUERY ===');
+      // COPY LOGIC TỪ CategoryProducts.tsx - Query database với category name
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .in('category', possibleCategories)
+        .eq('category', categoryName)
         .order('product_id', { ascending: false });
 
       if (error) {
