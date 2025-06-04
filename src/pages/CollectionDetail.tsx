@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -75,34 +76,37 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Mapping từ URL slug đến database category name
+// Mapping từ URL slug đến database category name - CẦN KHỚP CHÍNH XÁC với database
 const getCategoryNameForDatabase = (slug: string) => {
-  console.log('Getting category for slug:', slug);
+  console.log('=== CATEGORY MAPPING DEBUG ===');
+  console.log('Input slug:', slug);
   
   // Decode URL first
   const decodedSlug = decodeURIComponent(slug);
   console.log('Decoded slug:', decodedSlug);
   
+  // QUAN TRỌNG: Mapping này phải khớp chính xác với category trong database
   const mapping: Record<string, string> = {
     "terrarium": "Terrarium",
     "bonsai": "Bonsai", 
     "mini": "Mini",
-    "phong-thuy": "Phong thủy",
-    "trong-nha": "Trong nhà",
-    "sen-da": "Sen Đá",
-    "cay-khong-khi": "Cây Không Khí",
-    "phu-kien": "Phụ Kiện",
-    "treo": "Cây Treo"
+    "phong-thuy": "Phong Thủy", // Có dấu
+    "trong-nha": "Trong nhà", // Có dấu
+    "sen-da": "Sen Đá", // Có dấu
+    "cay-khong-khi": "Cây Không Khí", // Có dấu
+    "phu-kien": "Phụ Kiện", // Có dấu
+    "treo": "Cây Treo" // Có dấu
   };
   
   const result = mapping[decodedSlug] || mapping[slug];
-  console.log('Mapped category:', result);
+  console.log('Mapped category for database:', result);
+  console.log('Available mappings:', Object.keys(mapping));
   return result;
 };
 
 // Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong Thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -132,14 +136,19 @@ const CollectionDetail = () => {
     try {
       setLoading(true);
       
-      if (!category) return;
+      if (!category) {
+        console.log('No category parameter');
+        return;
+      }
 
-      console.log('=== DEBUG INFO ===');
-      console.log('Category from URL:', category);
+      console.log('=== COLLECTION DEBUG START ===');
+      console.log('Category from URL param:', category);
       console.log('Decoded category:', decodeURIComponent(category));
 
       // Get collection info
       const collectionInfo = getCollectionInfo(decodeURIComponent(category));
+      console.log('Collection info found:', collectionInfo);
+      
       if (!collectionInfo) {
         console.log('No collection info found for:', decodeURIComponent(category));
         setCollection(null);
@@ -151,30 +160,36 @@ const CollectionDetail = () => {
 
       // Get category name for database query
       const dbCategoryName = getCategoryNameForDatabase(category);
-      console.log('Database category name:', dbCategoryName);
+      console.log('Database category name to query:', dbCategoryName);
 
       if (!dbCategoryName) {
-        console.log('No database category mapping found');
+        console.log('No database category mapping found for slug:', category);
         setProducts([]);
         setLoading(false);
         return;
       }
 
-      // Debug: Fetch all products to see what categories exist
+      // Debug: First fetch all products to see what's in database
+      console.log('=== DATABASE DEBUG ===');
       const { data: allProducts, error: allError } = await supabase
         .from('products')
-        .select('*');
+        .select('product_id, name, category, price, stock_quantity, image_path');
       
       if (allError) {
         console.error('Error fetching all products:', allError);
       } else {
         console.log('All products in database:', allProducts);
-        console.log('Unique categories:', [...new Set(allProducts?.map(p => p.category))]);
-        console.log('Looking for exact match:', dbCategoryName);
-        console.log('Matching products:', allProducts?.filter(p => p.category === dbCategoryName));
+        const uniqueCategories = [...new Set(allProducts?.map(p => p.category))];
+        console.log('Unique categories in database:', uniqueCategories);
+        console.log(`Looking for exact match with: "${dbCategoryName}"`);
+        
+        const matchingProducts = allProducts?.filter(p => p.category === dbCategoryName);
+        console.log('Products matching category:', matchingProducts);
+        console.log('Number of matching products:', matchingProducts?.length || 0);
       }
 
       // Fetch products with exact category match
+      console.log('=== MAIN QUERY ===');
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -186,8 +201,9 @@ const CollectionDetail = () => {
         throw error;
       }
 
-      console.log('Query result:', data);
+      console.log('Final query result:', data);
       console.log('Number of products found:', data?.length || 0);
+      console.log('=== COLLECTION DEBUG END ===');
       
       setProducts(data || []);
       
@@ -522,7 +538,10 @@ const CollectionDetail = () => {
                   </div>
                 ) : (
                   <div className="text-center py-16 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500 mb-4">Không tìm thấy sản phẩm phù hợp.</p>
+                    <p className="text-gray-500 mb-4">Không tìm thấy sản phẩm phù hợp trong bộ sưu tập này.</p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Có thể chưa có sản phẩm nào thuộc danh mục "{collection.name}" trong cơ sở dữ liệu.
+                    </p>
                     {activeFilterCount > 0 && (
                       <Button 
                         variant="outline"

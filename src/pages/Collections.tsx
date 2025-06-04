@@ -19,16 +19,25 @@ const Collections = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Convert category name to URL slug
+  // Convert category name to URL slug - PHẢI KHỚP với CollectionDetail
   const getCategorySlug = (category: string) => {
+    console.log('Converting category to slug:', category);
+    
     const mapping: Record<string, string> = {
       "Terrarium": "terrarium",
       "Bonsai": "bonsai", 
-      "Sen Đá": "sen-da",
-      "Cây Không Khí": "cay-khong-khi",
-      "Phụ Kiện": "phu-kien"
+      "Mini": "mini",
+      "Phong Thủy": "phong-thuy", // Có dấu trong DB -> slug không dấu
+      "Trong nhà": "trong-nha", // Có dấu trong DB -> slug không dấu  
+      "Sen Đá": "sen-da", // Có dấu trong DB -> slug không dấu
+      "Cây Không Khí": "cay-khong-khi", // Có dấu trong DB -> slug không dấu
+      "Phụ Kiện": "phu-kien", // Có dấu trong DB -> slug không dấu
+      "Cây Treo": "treo" // Có dấu trong DB -> slug không dấu
     };
-    return mapping[category] || category.toLowerCase().replace(/\s+/g, '-');
+    
+    const slug = mapping[category] || category.toLowerCase().replace(/\s+/g, '-');
+    console.log(`Mapped "${category}" to slug "${slug}"`);
+    return slug;
   };
 
   useEffect(() => {
@@ -40,6 +49,8 @@ const Collections = () => {
     try {
       setLoading(true);
 
+      console.log('=== COLLECTIONS PAGE DEBUG ===');
+      
       // Get categories with product counts and sample images
       const { data, error } = await supabase
         .from('products')
@@ -51,11 +62,15 @@ const Collections = () => {
         throw error;
       }
 
+      console.log('Products data from database:', data);
+
       // Group products by category and get first image for each
       const categoryMap = new Map<string, { count: number; image: string }>();
       
       data?.forEach(product => {
         const category = product.category;
+        console.log('Processing product category:', category);
+        
         if (categoryMap.has(category)) {
           categoryMap.get(category)!.count += 1;
         } else {
@@ -66,13 +81,23 @@ const Collections = () => {
         }
       });
 
+      console.log('Category map:', categoryMap);
+
       // Convert to array format
-      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([category, data]) => ({
-        category,
-        count: data.count,
-        image: data.image,
-        slug: getCategorySlug(category)
-      }));
+      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([category, data]) => {
+        const slug = getCategorySlug(category);
+        console.log(`Collection: ${category} -> slug: ${slug}, count: ${data.count}`);
+        
+        return {
+          category,
+          count: data.count,
+          image: data.image,
+          slug: slug
+        };
+      });
+
+      console.log('Final collections data:', collectionsData);
+      console.log('=== COLLECTIONS PAGE DEBUG END ===');
 
       setCollections(collectionsData);
 
