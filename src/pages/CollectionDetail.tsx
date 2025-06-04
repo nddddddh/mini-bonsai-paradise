@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping
+// Collection info mapping - PHẢI KHỚP VỚI URL SLUG
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -76,32 +76,52 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Mapping từ URL slug đến database category name - CẦN KHỚP CHÍNH XÁC với database
-const getCategoryNameForDatabase = (slug: string) => {
-  console.log('=== CATEGORY MAPPING DEBUG ===');
+// LOGIC MỚI: Lấy tất cả categories khớp với slug và tìm sản phẩm
+const getAllPossibleCategoriesForSlug = (slug: string) => {
+  console.log('=== GETTING ALL POSSIBLE CATEGORIES FOR SLUG ===');
   console.log('Input slug:', slug);
   
-  // Decode URL first
   const decodedSlug = decodeURIComponent(slug);
   console.log('Decoded slug:', decodedSlug);
   
-  // QUAN TRỌNG: Mapping này phải khớp chính xác với category trong database
-  const mapping: Record<string, string> = {
-    "terrarium": "Terrarium",
-    "bonsai": "Bonsai", 
-    "mini": "Mini",
-    "phong-thuy": "Phong Thủy", // Có dấu
-    "trong-nha": "Trong nhà", // Có dấu
-    "sen-da": "Sen Đá", // Có dấu
-    "cay-khong-khi": "Cây Không Khí", // Có dấu
-    "phu-kien": "Phụ Kiện", // Có dấu
-    "treo": "Cây Treo" // Có dấu
-  };
+  // Mapping từ slug đến tất cả possible categories trong database
+  const possibleCategories: string[] = [];
   
-  const result = mapping[decodedSlug] || mapping[slug];
-  console.log('Mapped category for database:', result);
-  console.log('Available mappings:', Object.keys(mapping));
-  return result;
+  switch (decodedSlug) {
+    case "terrarium":
+      possibleCategories.push("Terrarium");
+      break;
+    case "bonsai":
+      possibleCategories.push("Bonsai");
+      break;
+    case "mini":
+      possibleCategories.push("Mini");
+      break;
+    case "phong-thuy":
+      // Có thể có cả 2 cách viết trong database
+      possibleCategories.push("Phong Thủy", "Phong thủy");
+      break;
+    case "trong-nha":
+      possibleCategories.push("Trong nhà");
+      break;
+    case "sen-da":
+      possibleCategories.push("Sen Đá");
+      break;
+    case "cay-khong-khi":
+      possibleCategories.push("Cây Không Khí");
+      break;
+    case "phu-kien":
+      possibleCategories.push("Phụ Kiện");
+      break;
+    case "treo":
+      possibleCategories.push("Cây Treo", "Treo");
+      break;
+    default:
+      console.log('No mapping found for slug:', decodedSlug);
+  }
+  
+  console.log('Possible categories:', possibleCategories);
+  return possibleCategories;
 };
 
 // Filter options
@@ -158,12 +178,11 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Get category name for database query
-      const dbCategoryName = getCategoryNameForDatabase(category);
-      console.log('Database category name to query:', dbCategoryName);
-
-      if (!dbCategoryName) {
-        console.log('No database category mapping found for slug:', category);
+      // Get all possible category names for this slug
+      const possibleCategories = getAllPossibleCategoriesForSlug(category);
+      
+      if (possibleCategories.length === 0) {
+        console.log('No possible categories found for slug:', category);
         setProducts([]);
         setLoading(false);
         return;
@@ -181,19 +200,19 @@ const CollectionDetail = () => {
         console.log('All products in database:', allProducts);
         const uniqueCategories = [...new Set(allProducts?.map(p => p.category))];
         console.log('Unique categories in database:', uniqueCategories);
-        console.log(`Looking for exact match with: "${dbCategoryName}"`);
+        console.log(`Looking for categories: ${possibleCategories.join(', ')}`);
         
-        const matchingProducts = allProducts?.filter(p => p.category === dbCategoryName);
-        console.log('Products matching category:', matchingProducts);
+        const matchingProducts = allProducts?.filter(p => possibleCategories.includes(p.category));
+        console.log('Products matching any possible category:', matchingProducts);
         console.log('Number of matching products:', matchingProducts?.length || 0);
       }
 
-      // Fetch products with exact category match
+      // Fetch products với điều kiện OR cho tất cả possible categories
       console.log('=== MAIN QUERY ===');
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', dbCategoryName)
+        .in('category', possibleCategories)
         .order('product_id', { ascending: false });
 
       if (error) {
