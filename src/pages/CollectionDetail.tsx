@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -64,6 +63,12 @@ const getCollectionInfo = (categorySlug: string) => {
       description: "Phụ kiện chăm sóc cây cảnh",
       longDescription: "Bộ sưu tập Phụ Kiện - các phụ kiện cần thiết cho việc chăm sóc cây cảnh như chậu, phân bón, dụng cụ tưới.",
       imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
+    },
+    "treo": {
+      name: "Cây Treo",
+      description: "Cây cảnh treo trang trí không gian sống",
+      longDescription: "Bộ sưu tập Cây Treo - các loại cây thích hợp để treo trang trí, tạo điểm nhấn xanh cho không gian sống.",
+      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
     }
   };
 
@@ -86,7 +91,8 @@ const getCategoryNameForDatabase = (slug: string) => {
     "trong-nha": "Trong nhà",
     "sen-da": "Sen Đá",
     "cay-khong-khi": "Cây Không Khí",
-    "phu-kien": "Phụ Kiện"
+    "phu-kien": "Phụ Kiện",
+    "treo": "Cây Treo"
   };
   
   const result = mapping[decodedSlug] || mapping[slug];
@@ -96,7 +102,7 @@ const getCategoryNameForDatabase = (slug: string) => {
 
 // Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
