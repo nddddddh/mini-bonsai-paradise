@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -19,49 +20,49 @@ const getCollectionInfo = (categorySlug: string) => {
     "terrarium": {
       name: "Terrarium",
       description: "Những khu rừng thu nhỏ trong bình thủy tinh tuyệt đẹp",
-      longDescription: "Terrarium là nghệ thuật tạo ra những khu vườn thu nhỏ trong các bình thủy tinh kín hoặc hở. Chúng tạo ra một hệ sinh thái tự cân bằng, là lựa chọn tuyệt vời cho những người yêu thích thiên nhiên nhưng có không gian hạn chế.",
+      longDescription: "Bộ sưu tập Terrarium - những khu vườn thu nhỏ trong các bình thủy tinh kín hoặc hở.",
       imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
     },
     "bonsai": {
       name: "Bonsai", 
       description: "Nghệ thuật bonsai Nhật Bản tinh tế và thanh lịch",
-      longDescription: "Bonsai là nghệ thuật trồng và tạo hình cây cảnh trong chậu nhỏ, có nguồn gốc từ Nhật Bản. Mỗi cây bonsai là một tác phẩm nghệ thuật sống, thể hiện sự kiên nhẫn, kỹ thuật và tình yêu với thiên nhiên.",
+      longDescription: "Bộ sưu tập Bonsai - nghệ thuật trồng và tạo hình cây cảnh trong chậu nhỏ, có nguồn gốc từ Nhật Bản.",
       imageUrl: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80"
     },
     "mini": {
       name: "Mini",
       description: "Các loài cây mini xinh xắn, phù hợp mọi không gian",
-      longDescription: "Bộ sưu tập cây mini bao gồm các loại cây nhỏ xinh, dễ chăm sóc và phù hợp với mọi không gian sống. Chúng mang lại sự tươi mới và sinh động cho ngôi nhà của bạn.",
+      longDescription: "Bộ sưu tập Mini - các loại cây nhỏ xinh, dễ chăm sóc và phù hợp với mọi không gian sống.",
       imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
     },
     "phong-thuy": {
       name: "Phong Thủy",
       description: "Cây phong thủy mang lại may mắn và tài lộc",
-      longDescription: "Bộ sưu tập cây phong thủy được chọn lọc kỹ lưỡng để mang lại vượng khí, tài lộc và sức khỏe cho gia chủ. Mỗi loại cây đều có ý nghĩa phong thủy riêng biệt.",
+      longDescription: "Bộ sưu tập Phong Thủy - các loại cây được chọn lọc kỹ lưỡng để mang lại vượng khí, tài lộc và sức khỏe.",
       imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80"
     },
     "trong-nha": {
       name: "Trong nhà",
       description: "Cây cảnh trong nhà, lọc không khí tự nhiên",
-      longDescription: "Bộ sưu tập cây trong nhà gồm các loại cây thích hợp với điều kiện ánh sáng trong nhà, có khả năng lọc không khí và tạo không gian xanh mát cho ngôi nhà của bạn.",
+      longDescription: "Bộ sưu tập Trong nhà - các loại cây thích hợp với điều kiện ánh sáng trong nhà, có khả năng lọc không khí.",
       imageUrl: "https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
     },
     "sen-da": {
       name: "Sen Đá",
       description: "Cây sen đá xinh xắn, dễ chăm sóc",
-      longDescription: "Bộ sưu tập sen đá với nhiều hình dáng và màu sắc khác nhau, rất dễ chăm sóc và phù hợp với người bận rộn.",
+      longDescription: "Bộ sưu tập Sen Đá - các loại sen đá với nhiều hình dáng và màu sắc khác nhau, rất dễ chăm sóc.",
       imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
     },
     "cay-khong-khi": {
       name: "Cây Không Khí",
       description: "Cây không khí độc đáo, không cần đất",
-      longDescription: "Bộ sưu tập cây không khí (Air Plants) độc đáo, không cần trồng trong đất mà chỉ cần phun sương thường xuyên.",
+      longDescription: "Bộ sưu tập Cây Không Khí - các loại cây độc đáo, không cần trồng trong đất mà chỉ cần phun sương thường xuyên.",
       imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
     },
     "phu-kien": {
       name: "Phụ Kiện",
       description: "Phụ kiện chăm sóc cây cảnh",
-      longDescription: "Bộ sưu tập các phụ kiện cần thiết cho việc chăm sóc cây cảnh như chậu, phân bón, dụng cụ tưới.",
+      longDescription: "Bộ sưu tập Phụ Kiện - các phụ kiện cần thiết cho việc chăm sóc cây cảnh như chậu, phân bón, dụng cụ tưới.",
       imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
     }
   };
@@ -69,24 +70,28 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Convert category slug to search terms for database query
-const getCategorySearchTerms = (slug: string) => {
-  const mapping: Record<string, string[]> = {
-    "terrarium": ["Terrarium"],
-    "bonsai": ["Bonsai"], 
-    "mini": ["Mini"],
-    "phong-thuy": ["Phong thủy", "Phong Thủy"],
-    "trong-nha": ["Trong nhà"],
-    "sen-da": ["Sen Đá"],
-    "cay-khong-khi": ["Cây Không Khí"],
-    "phu-kien": ["Phụ Kiện"]
+// Mapping từ URL slug đến database category name
+const getCategoryNameForDatabase = (slug: string) => {
+  console.log('Getting category for slug:', slug);
+  
+  // Decode URL first
+  const decodedSlug = decodeURIComponent(slug);
+  console.log('Decoded slug:', decodedSlug);
+  
+  const mapping: Record<string, string> = {
+    "terrarium": "Terrarium",
+    "bonsai": "Bonsai", 
+    "mini": "Mini",
+    "phong-thuy": "Phong thủy",
+    "trong-nha": "Trong nhà",
+    "sen-da": "Sen Đá",
+    "cay-khong-khi": "Cây Không Khí",
+    "phu-kien": "Phụ Kiện"
   };
   
-  // Decode URL encoding
-  const decodedSlug = decodeURIComponent(slug);
-  console.log('Original slug:', slug, 'Decoded slug:', decodedSlug);
-  
-  return mapping[decodedSlug] || mapping[slug] || [];
+  const result = mapping[decodedSlug] || mapping[slug];
+  console.log('Mapped category:', result);
+  return result;
 };
 
 // Filter options
@@ -123,12 +128,14 @@ const CollectionDetail = () => {
       
       if (!category) return;
 
+      console.log('=== DEBUG INFO ===');
       console.log('Category from URL:', category);
       console.log('Decoded category:', decodeURIComponent(category));
 
       // Get collection info
       const collectionInfo = getCollectionInfo(decodeURIComponent(category));
       if (!collectionInfo) {
+        console.log('No collection info found for:', decodeURIComponent(category));
         setCollection(null);
         setLoading(false);
         return;
@@ -136,18 +143,18 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Get search terms for database query
-      const searchTerms = getCategorySearchTerms(category);
-      console.log('Search terms:', searchTerms);
+      // Get category name for database query
+      const dbCategoryName = getCategoryNameForDatabase(category);
+      console.log('Database category name:', dbCategoryName);
 
-      if (searchTerms.length === 0) {
-        console.log('No search terms found for category:', category);
+      if (!dbCategoryName) {
+        console.log('No database category mapping found');
         setProducts([]);
         setLoading(false);
         return;
       }
 
-      // Fetch all products first to debug
+      // Debug: Fetch all products to see what categories exist
       const { data: allProducts, error: allError } = await supabase
         .from('products')
         .select('*');
@@ -157,25 +164,25 @@ const CollectionDetail = () => {
       } else {
         console.log('All products in database:', allProducts);
         console.log('Unique categories:', [...new Set(allProducts?.map(p => p.category))]);
+        console.log('Looking for exact match:', dbCategoryName);
+        console.log('Matching products:', allProducts?.filter(p => p.category === dbCategoryName));
       }
 
       // Fetch products with exact category match
-      let query = supabase.from('products').select('*');
-      
-      if (searchTerms.length === 1) {
-        query = query.eq('category', searchTerms[0]);
-      } else {
-        query = query.in('category', searchTerms);
-      }
-
-      const { data, error } = await query.order('product_id', { ascending: false });
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', dbCategoryName)
+        .order('product_id', { ascending: false });
 
       if (error) {
         console.error('Error fetching products:', error);
         throw error;
       }
 
-      console.log('Found products:', data);
+      console.log('Query result:', data);
+      console.log('Number of products found:', data?.length || 0);
+      
       setProducts(data || []);
       
       toast({
