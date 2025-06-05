@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -76,34 +75,49 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// LOGIC GIỐNG HỆT CategoryProducts.tsx - Convert category URL param to display name
-const getCategoryDisplayName = (category: string) => {
-  console.log('Converting category slug to display name:', category);
+// NEW LOGIC: Get ALL possible category names for a slug to search in database
+const getAllPossibleCategoryNames = (categorySlug: string) => {
+  console.log('=== GET ALL POSSIBLE CATEGORY NAMES ===');
+  console.log('Input slug:', categorySlug);
   
-  switch (category) {
+  const possibleNames: string[] = [];
+  
+  switch (categorySlug) {
     case "terrarium":
-      return "Terrarium";
+      possibleNames.push("Terrarium");
+      break;
     case "bonsai":
-      return "Bonsai";
+      possibleNames.push("Bonsai");
+      break;
     case "mini":
-      return "Mini";
+      possibleNames.push("Mini");
+      break;
     case "phong-thuy":
-      return "Phong Thủy";
+      // Database có cả 2 variant này
+      possibleNames.push("Phong Thủy", "Phong thủy");
+      break;
     case "trong-nha":
-      return "Trong nhà";
+      possibleNames.push("Trong nhà");
+      break;
     case "sen-da":
-      return "Sen Đá";
+      possibleNames.push("Sen Đá");
+      break;
     case "cay-khong-khi":
-      return "Cây Không Khí";
+      possibleNames.push("Cây Không Khí");
+      break;
     case "phu-kien":
-    case "accessories":
-      return "Phụ Kiện";
+      possibleNames.push("Phụ Kiện");
+      break;
     case "treo":
-      return "Treo"; // Chính xác theo database
+      // Database có cả 2 variant này
+      possibleNames.push("Treo", "Cây Treo");
+      break;
     default:
-      console.log('No mapping found for category:', category);
-      return "Sản phẩm";
+      console.log('No mapping found for slug:', categorySlug);
   }
+  
+  console.log('Possible category names:', possibleNames);
+  return possibleNames;
 };
 
 // Filter options
@@ -159,15 +173,22 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // DÙNG LOGIC GIỐNG HỆT CategoryProducts.tsx
-      const categoryName = getCategoryDisplayName(category);
-      console.log('Category name for database query:', categoryName);
+      // NEW APPROACH: Get all possible category names and search for ANY match
+      const possibleCategoryNames = getAllPossibleCategoryNames(category);
+      console.log('Will search for products with categories:', possibleCategoryNames);
       
-      // Query database với category name - GIỐNG HỆT CategoryProducts.tsx
+      if (possibleCategoryNames.length === 0) {
+        console.log('No possible category names found');
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Query database with IN clause to find ANY matching category
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', categoryName)
+        .in('category', possibleCategoryNames)
         .order('product_id', { ascending: false });
 
       if (error) {
@@ -190,7 +211,7 @@ const CollectionDetail = () => {
       } else {
         toast({
           title: "Không tìm thấy sản phẩm",
-          description: `Không có sản phẩm nào thuộc danh mục "${categoryName}" trong cơ sở dữ liệu`,
+          description: `Không có sản phẩm nào thuộc các danh mục: ${possibleCategoryNames.join(', ')}`,
           variant: "destructive",
           duration: 3000,
         });
