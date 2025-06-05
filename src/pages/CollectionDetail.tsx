@@ -75,7 +75,7 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// NEW LOGIC: Get ALL possible category names for a slug to search in database
+// UPDATED LOGIC: Dựa vào console logs, map chính xác với database
 const getAllPossibleCategoryNames = (categorySlug: string) => {
   console.log('=== GET ALL POSSIBLE CATEGORY NAMES ===');
   console.log('Input slug:', categorySlug);
@@ -93,11 +93,12 @@ const getAllPossibleCategoryNames = (categorySlug: string) => {
       possibleNames.push("Mini");
       break;
     case "phong-thuy":
-    case "phong-thủy": // Handle both accented and non-accented versions
-      // Database có cả 2 variant này
-      possibleNames.push("Phong Thủy", "Phong thủy");
+    case "phong-thủy":
+      // Dựa vào console logs, database có "Phong thủy" (chữ thường)
+      possibleNames.push("Phong thủy", "Phong Thủy");
       break;
     case "trong-nha":
+      // Dựa vào console logs, database có "Trong nhà"
       possibleNames.push("Trong nhà");
       break;
     case "sen-da":
@@ -110,20 +111,20 @@ const getAllPossibleCategoryNames = (categorySlug: string) => {
       possibleNames.push("Phụ Kiện");
       break;
     case "treo":
-      // Database có cả 2 variant này
+      // Dựa vào console logs, database có "Treo"
       possibleNames.push("Treo", "Cây Treo");
       break;
     default:
       console.log('No mapping found for slug:', categorySlug);
   }
   
-  console.log('Possible category names:', possibleNames);
+  console.log('Possible category names to search:', possibleNames);
   return possibleNames;
 };
 
 // Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong Thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo", "Treo"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Treo"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -158,7 +159,7 @@ const CollectionDetail = () => {
         return;
       }
 
-      console.log('=== COLLECTION DEBUG START ===');
+      console.log('=== COLLECTION DETAIL DEBUG START ===');
       console.log('Category from URL param:', category);
 
       // Get collection info
@@ -174,7 +175,7 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // NEW APPROACH: Get all possible category names and search for ANY match
+      // Get all possible category names to search in database
       const possibleCategoryNames = getAllPossibleCategoryNames(category);
       console.log('Will search for products with categories:', possibleCategoryNames);
       
@@ -185,21 +186,29 @@ const CollectionDetail = () => {
         return;
       }
 
-      // Query database with IN clause to find ANY matching category
+      // Query database với debug chi tiết
+      console.log('Executing database query...');
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .in('category', possibleCategoryNames)
         .order('product_id', { ascending: false });
 
+      console.log('Database query result:', { data, error });
+
       if (error) {
-        console.error('Error fetching products:', error);
+        console.error('Database query error:', error);
         throw error;
       }
 
-      console.log('Final query result:', data);
+      console.log('Query executed successfully');
       console.log('Number of products found:', data?.length || 0);
-      console.log('=== COLLECTION DEBUG END ===');
+      
+      if (data && data.length > 0) {
+        console.log('Product categories found:', data.map(p => p.category));
+      }
+      
+      console.log('=== COLLECTION DETAIL DEBUG END ===');
       
       setProducts(data || []);
       
@@ -210,6 +219,7 @@ const CollectionDetail = () => {
           duration: 3000,
         });
       } else {
+        console.warn('No products found with categories:', possibleCategoryNames);
         toast({
           title: "Không tìm thấy sản phẩm",
           description: `Không có sản phẩm nào thuộc các danh mục: ${possibleCategoryNames.join(', ')}`,
