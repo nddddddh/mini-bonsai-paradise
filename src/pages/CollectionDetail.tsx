@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -13,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping - ĐỒNG BỘ VỚI CategoryProducts.tsx
+// Collection info mapping
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -75,51 +76,30 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// UPDATED LOGIC: Dựa vào console logs, map chính xác với database
-const getAllPossibleCategoryNames = (categorySlug: string) => {
-  console.log('=== GET ALL POSSIBLE CATEGORY NAMES ===');
-  console.log('Input slug:', categorySlug);
-  
-  const possibleNames: string[] = [];
-  
+// Map slug to display name - ĐỒNG BỘ VỚI CategoryProducts.tsx
+const getCategoryDisplayName = (categorySlug: string) => {
   switch (categorySlug) {
     case "terrarium":
-      possibleNames.push("Terrarium");
-      break;
+      return "Terrarium";
     case "bonsai":
-      possibleNames.push("Bonsai");
-      break;
-    case "mini":
-      possibleNames.push("Mini");
-      break;
-    case "phong-thuy":
-    case "phong-thủy":
-      // Dựa vào console logs, database có "Phong thủy" (chữ thường)
-      possibleNames.push("Phong thủy", "Phong Thủy");
-      break;
-    case "trong-nha":
-      // Dựa vào console logs, database có "Trong nhà"
-      possibleNames.push("Trong nhà");
-      break;
+      return "Bonsai";
     case "sen-da":
-      possibleNames.push("Sen Đá");
-      break;
+      return "Sen Đá";
     case "cay-khong-khi":
-      possibleNames.push("Cây Không Khí");
-      break;
+      return "Cây Không Khí";
     case "phu-kien":
-      possibleNames.push("Phụ Kiện");
-      break;
+      return "Phụ Kiện";
+    case "mini":
+      return "Mini";
+    case "phong-thuy":
+      return "Phong thủy"; // Khớp với database
+    case "trong-nha":
+      return "Trong nhà"; // Khớp với database
     case "treo":
-      // Dựa vào console logs, database có "Treo"
-      possibleNames.push("Treo", "Cây Treo");
-      break;
+      return "Treo"; // Khớp với database
     default:
-      console.log('No mapping found for slug:', categorySlug);
+      return "Sản phẩm";
   }
-  
-  console.log('Possible category names to search:', possibleNames);
-  return possibleNames;
 };
 
 // Filter options
@@ -175,23 +155,16 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Get all possible category names to search in database
-      const possibleCategoryNames = getAllPossibleCategoryNames(category);
-      console.log('Will search for products with categories:', possibleCategoryNames);
+      // Sử dụng logic giống như trang Products - map slug thành display name
+      const categoryName = getCategoryDisplayName(category);
+      console.log('Mapped category name for database:', categoryName);
       
-      if (possibleCategoryNames.length === 0) {
-        console.log('No possible category names found');
-        setProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      // Query database với debug chi tiết
+      // Query database với category name đã map (giống như trang Products)
       console.log('Executing database query...');
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .in('category', possibleCategoryNames)
+        .eq('category', categoryName)
         .order('product_id', { ascending: false });
 
       console.log('Database query result:', { data, error });
@@ -219,10 +192,10 @@ const CollectionDetail = () => {
           duration: 3000,
         });
       } else {
-        console.warn('No products found with categories:', possibleCategoryNames);
+        console.warn('No products found with category:', categoryName);
         toast({
           title: "Không tìm thấy sản phẩm",
-          description: `Không có sản phẩm nào thuộc các danh mục: ${possibleCategoryNames.join(', ')}`,
+          description: `Không có sản phẩm nào thuộc danh mục: ${categoryName}`,
           variant: "destructive",
           duration: 3000,
         });
