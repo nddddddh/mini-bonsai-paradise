@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 
-// Collection info mapping - COPY LOGIC TỪ CategoryProducts.tsx
+// Collection info mapping - ĐỒNG BỘ VỚI CategoryProducts.tsx
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
     "terrarium": {
@@ -76,8 +76,10 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// COPY LOGIC TỪ CategoryProducts.tsx - Convert category URL param to display name
+// LOGIC GIỐNG HỆT CategoryProducts.tsx - Convert category URL param to display name
 const getCategoryDisplayName = (category: string) => {
+  console.log('Converting category slug to display name:', category);
+  
   switch (category) {
     case "terrarium":
       return "Terrarium";
@@ -94,17 +96,19 @@ const getCategoryDisplayName = (category: string) => {
     case "cay-khong-khi":
       return "Cây Không Khí";
     case "phu-kien":
+    case "accessories":
       return "Phụ Kiện";
     case "treo":
-      return "Cây Treo";
+      return "Treo"; // Chính xác theo database
     default:
+      console.log('No mapping found for category:', category);
       return "Sản phẩm";
   }
 };
 
 // Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong Thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo"],
+  category: ["Terrarium", "Bonsai", "Mini", "Phong Thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Cây Treo", "Treo"],
   careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
   size: ["Nhỏ", "Trung bình", "Lớn"]
 };
@@ -155,11 +159,11 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // COPY LOGIC TỪ CategoryProducts.tsx - Sử dụng getCategoryDisplayName
+      // DÙNG LOGIC GIỐNG HỆT CategoryProducts.tsx
       const categoryName = getCategoryDisplayName(category);
       console.log('Category name for database query:', categoryName);
       
-      // COPY LOGIC TỪ CategoryProducts.tsx - Query database với category name
+      // Query database với category name - GIỐNG HỆT CategoryProducts.tsx
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -177,11 +181,20 @@ const CollectionDetail = () => {
       
       setProducts(data || []);
       
-      toast({
-        title: `Bộ sưu tập: ${collectionInfo.name}`,
-        description: `Đã tìm thấy ${data?.length || 0} sản phẩm trong bộ sưu tập này`,
-        duration: 3000,
-      });
+      if (data && data.length > 0) {
+        toast({
+          title: `Bộ sưu tập: ${collectionInfo.name}`,
+          description: `Đã tìm thấy ${data.length} sản phẩm trong bộ sưu tập này`,
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Không tìm thấy sản phẩm",
+          description: `Không có sản phẩm nào thuộc danh mục "${categoryName}" trong cơ sở dữ liệu`,
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
 
     } catch (error) {
       console.error('Error fetching collection data:', error);
