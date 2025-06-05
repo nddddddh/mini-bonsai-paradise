@@ -93,6 +93,7 @@ const getAllPossibleCategoryNames = (categorySlug: string) => {
       possibleNames.push("Mini");
       break;
     case "phong-thuy":
+    case "phong-thủy": // Handle both accented and non-accented versions
       // Database có cả 2 variant này
       possibleNames.push("Phong Thủy", "Phong thủy");
       break;
