@@ -76,30 +76,61 @@ const getCollectionInfo = (categorySlug: string) => {
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Map slug to display name - ĐỒNG BỘ VỚI CategoryProducts.tsx
-const getCategoryDisplayName = (categorySlug: string) => {
-  switch (categorySlug) {
-    case "terrarium":
-      return "Terrarium";
-    case "bonsai":
-      return "Bonsai";
-    case "sen-da":
-      return "Sen Đá";
-    case "cay-khong-khi":
-      return "Cây Không Khí";
-    case "phu-kien":
-      return "Phụ Kiện";
-    case "mini":
-      return "Mini";
-    case "phong-thuy":
-      return "Phong thủy"; // Khớp với database
-    case "trong-nha":
-      return "Trong nhà"; // Khớp với database
-    case "treo":
-      return "Treo"; // Khớp với database
-    default:
-      return "Sản phẩm";
+// Hàm chuyển đổi chuỗi thành dạng không dấu, không hoa thường
+const normalizeString = (str: string) => {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/\s+/g, '');
+};
+
+// Hàm tìm sản phẩm theo category linh hoạt
+const findProductsByCategory = async (categorySlug: string) => {
+  console.log('=== FINDING PRODUCTS BY CATEGORY ===');
+  console.log('Category slug:', categorySlug);
+  
+  // Lấy tất cả sản phẩm từ database
+  const { data: allProducts, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('product_id', { ascending: false });
+
+  if (error) {
+    console.error('Database query error:', error);
+    throw error;
   }
+
+  if (!allProducts) {
+    console.log('No products found in database');
+    return [];
+  }
+
+  console.log('Total products in database:', allProducts.length);
+  console.log('All categories in database:', [...new Set(allProducts.map(p => p.category))]);
+  
+  // Chuẩn hóa category slug
+  const normalizedSlug = normalizeString(categorySlug);
+  console.log('Normalized slug:', normalizedSlug);
+  
+  // Tìm sản phẩm khớp với category
+  const matchingProducts = allProducts.filter(product => {
+    const normalizedCategory = normalizeString(product.category);
+    const isMatch = normalizedCategory.includes(normalizedSlug) || normalizedSlug.includes(normalizedCategory);
+    
+    if (isMatch) {
+      console.log(`Match found: "${product.category}" matches slug "${categorySlug}"`);
+    }
+    
+    return isMatch;
+  });
+
+  console.log('Matching products found:', matchingProducts.length);
+  console.log('Matching product categories:', matchingProducts.map(p => p.category));
+  console.log('=== END FINDING PRODUCTS ===');
+  
+  return matchingProducts;
 };
 
 // Filter options
@@ -155,47 +186,25 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Sử dụng logic giống như trang Products - map slug thành display name
-      const categoryName = getCategoryDisplayName(category);
-      console.log('Mapped category name for database:', categoryName);
+      // Tìm sản phẩm bằng cách linh hoạt
+      const matchingProducts = await findProductsByCategory(category);
       
-      // Query database với category name đã map (giống như trang Products)
-      console.log('Executing database query...');
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', categoryName)
-        .order('product_id', { ascending: false });
-
-      console.log('Database query result:', { data, error });
-
-      if (error) {
-        console.error('Database query error:', error);
-        throw error;
-      }
-
-      console.log('Query executed successfully');
-      console.log('Number of products found:', data?.length || 0);
-      
-      if (data && data.length > 0) {
-        console.log('Product categories found:', data.map(p => p.category));
-      }
-      
+      console.log('Final matching products:', matchingProducts.length);
       console.log('=== COLLECTION DETAIL DEBUG END ===');
       
-      setProducts(data || []);
+      setProducts(matchingProducts || []);
       
-      if (data && data.length > 0) {
+      if (matchingProducts && matchingProducts.length > 0) {
         toast({
           title: `Bộ sưu tập: ${collectionInfo.name}`,
-          description: `Đã tìm thấy ${data.length} sản phẩm trong bộ sưu tập này`,
+          description: `Đã tìm thấy ${matchingProducts.length} sản phẩm trong bộ sưu tập này`,
           duration: 3000,
         });
       } else {
-        console.warn('No products found with category:', categoryName);
+        console.warn('No products found for category:', category);
         toast({
           title: "Không tìm thấy sản phẩm",
-          description: `Không có sản phẩm nào thuộc danh mục: ${categoryName}`,
+          description: `Không có sản phẩm nào thuộc danh mục: ${category}`,
           variant: "destructive",
           duration: 3000,
         });
