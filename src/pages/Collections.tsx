@@ -6,9 +6,11 @@ import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { getCategoryName } from "@/types/supabase";
 
 interface CollectionData {
-  category: string;
+  categoryId: number;
+  categoryName: string;
   count: number;
   image: string;
   slug: string;
@@ -19,25 +21,14 @@ const Collections = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Convert category name to URL slug - PHẢI KHỚP với CollectionDetail
-  const getCategorySlug = (category: string) => {
-    console.log('Converting category to slug:', category);
-    
-    const mapping: Record<string, string> = {
-      "Terrarium": "terrarium",
-      "Bonsai": "bonsai", 
-      "Mini": "mini",
-      "Phong Thủy": "phong-thuy", // Có dấu trong DB -> slug không dấu
-      "Trong nhà": "trong-nha", // Có dấu trong DB -> slug không dấu  
-      "Sen Đá": "sen-da", // Có dấu trong DB -> slug không dấu
-      "Cây Không Khí": "cay-khong-khi", // Có dấu trong DB -> slug không dấu
-      "Phụ Kiện": "phu-kien", // Có dấu trong DB -> slug không dấu
-      "Cây Treo": "treo" // Có dấu trong DB -> slug không dấu
+  // Convert category ID to URL slug
+  const getCategorySlug = (categoryId: number) => {
+    const mapping: Record<number, string> = {
+      1: "cay-co-hoa", // Cây có hoa
+      2: "mini",       // Mini
+      3: "phong-thuy"  // Phong thủy
     };
-    
-    const slug = mapping[category] || category.toLowerCase().replace(/\s+/g, '-');
-    console.log(`Mapped "${category}" to slug "${slug}"`);
-    return slug;
+    return mapping[categoryId] || "mini";
   };
 
   useEffect(() => {
@@ -65,16 +56,16 @@ const Collections = () => {
       console.log('Products data from database:', data);
 
       // Group products by category and get first image for each
-      const categoryMap = new Map<string, { count: number; image: string }>();
+      const categoryMap = new Map<number, { count: number; image: string }>();
       
       data?.forEach(product => {
-        const category = product.category;
-        console.log('Processing product category:', category);
+        const categoryId = product.category;
+        console.log('Processing product category ID:', categoryId);
         
-        if (categoryMap.has(category)) {
-          categoryMap.get(category)!.count += 1;
+        if (categoryMap.has(categoryId)) {
+          categoryMap.get(categoryId)!.count += 1;
         } else {
-          categoryMap.set(category, {
+          categoryMap.set(categoryId, {
             count: 1,
             image: product.image_path || '/placeholder.svg'
           });
@@ -84,12 +75,14 @@ const Collections = () => {
       console.log('Category map:', categoryMap);
 
       // Convert to array format
-      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([category, data]) => {
-        const slug = getCategorySlug(category);
-        console.log(`Collection: ${category} -> slug: ${slug}, count: ${data.count}`);
+      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([categoryId, data]) => {
+        const categoryName = getCategoryName(categoryId);
+        const slug = getCategorySlug(categoryId);
+        console.log(`Collection: ID=${categoryId} -> Name=${categoryName} -> slug=${slug}, count=${data.count}`);
         
         return {
-          category,
+          categoryId,
+          categoryName,
           count: data.count,
           image: data.image,
           slug: slug
@@ -146,7 +139,7 @@ const Collections = () => {
                 Bộ Sưu Tập Cây Cảnh
               </h1>
               <p className="text-lg text-gray-600 mb-8">
-                Khám phá những bộ sưu tập cây cảnh đặc biệt, từ terrarium thu nhỏ đến bonsai nghệ thuật
+                Khám phá những bộ sưu tập cây cảnh đặc biệt, từ cây có hoa rực rỡ đến cây mini xinh xắn
               </p>
             </div>
           </div>
@@ -157,22 +150,22 @@ const Collections = () => {
           {collections.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {collections.map((collection) => (
-                <div key={collection.category} className="group cursor-pointer">
+                <div key={collection.categoryId} className="group cursor-pointer">
                   <Link to={`/collections/${collection.slug}`}>
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
                       <div className="aspect-[4/3] overflow-hidden">
                         <img
                           src={collection.image}
-                          alt={collection.category}
+                          alt={collection.categoryName}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                       <div className="p-6">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-nature-600 transition-colors">
-                          {collection.category}
+                          {collection.categoryName}
                         </h3>
                         <p className="text-gray-600 mb-4">
-                          Bộ sưu tập {collection.category.toLowerCase()}
+                          Bộ sưu tập {collection.categoryName.toLowerCase()}
                         </p>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-500">

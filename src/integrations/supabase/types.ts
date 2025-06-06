@@ -269,7 +269,7 @@ export type Database = {
       }
       products: {
         Row: {
-          category: string
+          category: number
           description: string | null
           image_path: string | null
           name: string
@@ -278,7 +278,7 @@ export type Database = {
           stock_quantity: number
         }
         Insert: {
-          category: string
+          category?: number
           description?: string | null
           image_path?: string | null
           name: string
@@ -287,7 +287,7 @@ export type Database = {
           stock_quantity?: number
         }
         Update: {
-          category?: string
+          category?: number
           description?: string | null
           image_path?: string | null
           name?: string
@@ -344,7 +344,7 @@ export type Database = {
     Views: {
       product_sales: {
         Row: {
-          category: string | null
+          category: number | null
           name: string | null
           product_id: number | null
           total_revenue: number | null

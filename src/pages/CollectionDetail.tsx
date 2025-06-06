@@ -13,131 +13,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
+import { getCategoryName } from '@/types/supabase';
 
 // Collection info mapping
 const getCollectionInfo = (categorySlug: string) => {
   const collections = {
-    "terrarium": {
-      name: "Terrarium",
-      description: "Những khu rừng thu nhỏ trong bình thủy tinh tuyệt đẹp",
-      longDescription: "Bộ sưu tập Terrarium - những khu vườn thu nhỏ trong các bình thủy tinh kín hoặc hở.",
-      imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
-    },
-    "bonsai": {
-      name: "Bonsai", 
-      description: "Nghệ thuật bonsai Nhật Bản tinh tế và thanh lịch",
-      longDescription: "Bộ sưu tập Bonsai - nghệ thuật trồng và tạo hình cây cảnh trong chậu nhỏ, có nguồn gốc từ Nhật Bản.",
-      imageUrl: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=735&q=80"
+    "cay-co-hoa": {
+      name: "Cây có hoa",
+      description: "Những cây có hoa rực rỡ đầy màu sắc",
+      longDescription: "Bộ sưu tập Cây có hoa - những loại cây với hoa đẹp, mang lại sức sống và màu sắc cho không gian của bạn.",
+      imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
+      categoryId: 1
     },
     "mini": {
-      name: "Mini",
+      name: "Mini", 
       description: "Các loài cây mini xinh xắn, phù hợp mọi không gian",
       longDescription: "Bộ sưu tập Mini - các loại cây nhỏ xinh, dễ chăm sóc và phù hợp với mọi không gian sống.",
-      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
+      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80",
+      categoryId: 2
     },
     "phong-thuy": {
       name: "Phong Thủy",
       description: "Cây phong thủy mang lại may mắn và tài lộc",
       longDescription: "Bộ sưu tập Phong Thủy - các loại cây được chọn lọc kỹ lưỡng để mang lại vượng khí, tài lộc và sức khỏe.",
-      imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80"
-    },
-    "trong-nha": {
-      name: "Trong nhà",
-      description: "Cây cảnh trong nhà, lọc không khí tự nhiên",
-      longDescription: "Bộ sưu tập Trong nhà - các loại cây thích hợp với điều kiện ánh sáng trong nhà, có khả năng lọc không khí.",
-      imageUrl: "https://images.unsplash.com/photo-1592170577795-f8df9a9b0441?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
-    },
-    "sen-da": {
-      name: "Sen Đá",
-      description: "Cây sen đá xinh xắn, dễ chăm sóc",
-      longDescription: "Bộ sưu tập Sen Đá - các loại sen đá với nhiều hình dáng và màu sắc khác nhau, rất dễ chăm sóc.",
-      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
-    },
-    "cay-khong-khi": {
-      name: "Cây Không Khí",
-      description: "Cây không khí độc đáo, không cần đất",
-      longDescription: "Bộ sưu tập Cây Không Khí - các loại cây độc đáo, không cần trồng trong đất mà chỉ cần phun sương thường xuyên.",
-      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
-    },
-    "phu-kien": {
-      name: "Phụ Kiện",
-      description: "Phụ kiện chăm sóc cây cảnh",
-      longDescription: "Bộ sưu tập Phụ Kiện - các phụ kiện cần thiết cho việc chăm sóc cây cảnh như chậu, phân bón, dụng cụ tưới.",
-      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
-    },
-    "treo": {
-      name: "Cây Treo",
-      description: "Cây cảnh treo trang trí không gian sống",
-      longDescription: "Bộ sưu tập Cây Treo - các loại cây thích hợp để treo trang trí, tạo điểm nhấn xanh cho không gian sống.",
-      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80"
+      imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80",
+      categoryId: 3
     }
   };
 
   return collections[categorySlug as keyof typeof collections] || null;
 };
 
-// Hàm chuyển đổi chuỗi thành dạng không dấu, không hoa thường
-const normalizeString = (str: string) => {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .replace(/\s+/g, '');
-};
-
-// Hàm tìm sản phẩm theo category linh hoạt
-const findProductsByCategory = async (categorySlug: string) => {
-  console.log('=== FINDING PRODUCTS BY CATEGORY ===');
-  console.log('Category slug:', categorySlug);
-  
-  // Lấy tất cả sản phẩm từ database
-  const { data: allProducts, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('product_id', { ascending: false });
-
-  if (error) {
-    console.error('Database query error:', error);
-    throw error;
-  }
-
-  if (!allProducts) {
-    console.log('No products found in database');
-    return [];
-  }
-
-  console.log('Total products in database:', allProducts.length);
-  console.log('All categories in database:', [...new Set(allProducts.map(p => p.category))]);
-  
-  // Chuẩn hóa category slug
-  const normalizedSlug = normalizeString(categorySlug);
-  console.log('Normalized slug:', normalizedSlug);
-  
-  // Tìm sản phẩm khớp với category
-  const matchingProducts = allProducts.filter(product => {
-    const normalizedCategory = normalizeString(product.category);
-    const isMatch = normalizedCategory.includes(normalizedSlug) || normalizedSlug.includes(normalizedCategory);
-    
-    if (isMatch) {
-      console.log(`Match found: "${product.category}" matches slug "${categorySlug}"`);
-    }
-    
-    return isMatch;
-  });
-
-  console.log('Matching products found:', matchingProducts.length);
-  console.log('Matching product categories:', matchingProducts.map(p => p.category));
-  console.log('=== END FINDING PRODUCTS ===');
-  
-  return matchingProducts;
-};
-
 // Filter options
 const filterOptions = {
-  category: ["Terrarium", "Bonsai", "Mini", "Phong thủy", "Trong nhà", "Sen Đá", "Cây Không Khí", "Phụ Kiện", "Treo"],
-  careLevel: ["Rất dễ chăm sóc", "Dễ chăm sóc", "Chăm sóc trung bình", "Cần chăm sóc kỹ"],
-  size: ["Nhỏ", "Trung bình", "Lớn"]
+  category: [
+    { id: 1, name: "Cây có hoa" },
+    { id: 2, name: "Mini" },
+    { id: 3, name: "Phong thủy" }
+  ]
 };
 
 const CollectionDetail = () => {
@@ -145,10 +58,8 @@ const CollectionDetail = () => {
   const [collection, setCollection] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<Record<string, string[]>>({
-    category: [],
-    careLevel: [],
-    size: []
+  const [filters, setFilters] = useState<Record<string, number[]>>({
+    category: []
   });
   const [sortOption, setSortOption] = useState("featured");
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -186,10 +97,19 @@ const CollectionDetail = () => {
 
       setCollection(collectionInfo);
 
-      // Tìm sản phẩm bằng cách linh hoạt
-      const matchingProducts = await findProductsByCategory(category);
+      // Fetch products by category ID
+      const { data: matchingProducts, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', collectionInfo.categoryId)
+        .order('product_id', { ascending: false });
+
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
+      }
       
-      console.log('Final matching products:', matchingProducts.length);
+      console.log('Final matching products:', matchingProducts?.length || 0);
       console.log('=== COLLECTION DETAIL DEBUG END ===');
       
       setProducts(matchingProducts || []);
@@ -249,7 +169,7 @@ const CollectionDetail = () => {
     }
   });
   
-  const toggleFilter = (filterType: string, value: string) => {
+  const toggleFilter = (filterType: string, value: number) => {
     setFilters(prev => {
       const current = [...prev[filterType]];
       const index = current.indexOf(value);
@@ -269,9 +189,7 @@ const CollectionDetail = () => {
   
   const clearFilters = () => {
     setFilters({
-      category: [],
-      careLevel: [],
-      size: []
+      category: []
     });
   };
   
@@ -424,17 +342,17 @@ const CollectionDetail = () => {
                     <CollapsibleContent className="pb-3">
                       <div className="space-y-2 mt-2">
                         {filterOptions.category.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
+                          <div key={option.id} className="flex items-center space-x-2">
                             <Checkbox 
-                              id={`category-${option}`} 
-                              checked={filters.category.includes(option)}
-                              onCheckedChange={() => toggleFilter('category', option)}
+                              id={`category-${option.id}`} 
+                              checked={filters.category.includes(option.id)}
+                              onCheckedChange={() => toggleFilter('category', option.id)}
                             />
                             <label 
-                              htmlFor={`category-${option}`}
+                              htmlFor={`category-${option.id}`}
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {option}
+                              {option.name}
                             </label>
                           </div>
                         ))}
@@ -467,17 +385,17 @@ const CollectionDetail = () => {
                       <h3 className="font-medium mb-3">Loại cây</h3>
                       <div className="space-y-2">
                         {filterOptions.category.map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
+                          <div key={option.id} className="flex items-center space-x-2">
                             <Checkbox 
-                              id={`mobile-category-${option}`} 
-                              checked={filters.category.includes(option)}
-                              onCheckedChange={() => toggleFilter('category', option)}
+                              id={`mobile-category-${option.id}`} 
+                              checked={filters.category.includes(option.id)}
+                              onCheckedChange={() => toggleFilter('category', option.id)}
                             />
                             <label 
-                              htmlFor={`mobile-category-${option}`}
+                              htmlFor={`mobile-category-${option.id}`}
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {option}
+                              {option.name}
                             </label>
                           </div>
                         ))}
@@ -519,7 +437,7 @@ const CollectionDetail = () => {
                             />
                           </AspectRatio>
                           <CardContent className="p-4">
-                            <div className="text-sm text-gray-500 mb-1">{product.category}</div>
+                            <div className="text-sm text-gray-500 mb-1">{getCategoryName(product.category)}</div>
                             <h3 className="font-medium text-lg group-hover:text-nature-600 transition-colors">{product.name}</h3>
                             <div className="flex justify-between items-center mt-2">
                               <div className="font-semibold text-nature-700">{product.price.toLocaleString('vi-VN')} ₫</div>

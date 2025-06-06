@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
 import { ShoppingCart } from "lucide-react";
 import { Product } from "@/types/database";
+import { getCategoryName } from "@/types/database";
 
 // Legacy interface for backward compatibility
 export interface Plant {
@@ -12,7 +13,7 @@ export interface Plant {
   price: number;
   salePrice?: number;
   image: string;
-  category: string;
+  category: string | number;
   stock: number;
 }
 
@@ -32,7 +33,7 @@ const PlantCard = ({ plant }: PlantCardProps) => {
         price: product.price,
         salePrice: product.salePrice,
         image: product.image || '',
-        category: product.category,
+        category: typeof product.category === 'number' ? getCategoryName(product.category) : product.category,
         stock: product.stock_quantity
       };
     }

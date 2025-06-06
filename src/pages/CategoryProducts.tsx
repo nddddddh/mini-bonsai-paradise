@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import PlantCard from "@/components/PlantCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
+import { getCategoryName, getCategoryId } from "@/types/supabase";
 
 const CategoryProducts = () => {
   const { category } = useParams();
@@ -16,22 +17,21 @@ const CategoryProducts = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Convert category URL param to category ID
+  const getCategoryIdFromSlug = (slug: string): number => {
+    const mapping: Record<string, number> = {
+      "cay-co-hoa": 1,    // Cây có hoa
+      "mini": 2,          // Mini
+      "phong-thuy": 3     // Phong thủy
+    };
+    return mapping[slug] || 2; // Default to Mini
+  };
+
   // Convert category URL param to display name
   const getCategoryDisplayName = () => {
-    switch (category) {
-      case "terrarium":
-        return "Terrarium";
-      case "bonsai":
-        return "Bonsai";
-      case "sen-da":
-        return "Sen Đá";
-      case "cay-khong-khi":
-        return "Cây Không Khí";
-      case "accessories":
-        return "Phụ Kiện";
-      default:
-        return "Sản phẩm";
-    }
+    if (!category) return "Sản phẩm";
+    const categoryId = getCategoryIdFromSlug(category);
+    return getCategoryName(categoryId);
   };
 
   useEffect(() => {
@@ -42,12 +42,15 @@ const CategoryProducts = () => {
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
-      const categoryName = getCategoryDisplayName();
+      
+      if (!category) return;
+      
+      const categoryId = getCategoryIdFromSlug(category);
       
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', categoryName)
+        .eq('category', categoryId)
         .order('product_id', { ascending: false });
 
       if (error) {
@@ -59,7 +62,7 @@ const CategoryProducts = () => {
       
       if (data && data.length > 0) {
         toast({
-          title: `Danh mục: ${categoryName}`,
+          title: `Danh mục: ${getCategoryDisplayName()}`,
           description: `Đã tìm thấy ${data.length} sản phẩm trong danh mục này`,
           duration: 3000,
         });
@@ -87,7 +90,7 @@ const CategoryProducts = () => {
   const transformProductForPlantCard = (product: Product) => ({
     id: product.product_id,
     name: product.name,
-    category: product.category,
+    category: getCategoryName(product.category),
     description: product.description || '',
     price: product.price,
     image: product.image_path || '/placeholder.svg',
