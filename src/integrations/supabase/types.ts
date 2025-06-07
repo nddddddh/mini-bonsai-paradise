@@ -147,13 +147,6 @@ export type Database = {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "product_sales"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["product_id"]
           },
@@ -188,13 +181,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["order_id"]
-          },
-          {
-            foreignKeyName: "order_details_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "product_sales"
-            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "order_details_product_id_fkey"
@@ -240,7 +226,7 @@ export type Database = {
       otp_verifications: {
         Row: {
           action: string
-          created_at: string
+          created_at: string | null
           email: string
           expires_at: string
           id: string
@@ -249,7 +235,7 @@ export type Database = {
         }
         Insert: {
           action?: string
-          created_at?: string
+          created_at?: string | null
           email: string
           expires_at: string
           id?: string
@@ -258,7 +244,7 @@ export type Database = {
         }
         Update: {
           action?: string
-          created_at?: string
+          created_at?: string | null
           email?: string
           expires_at?: string
           id?: string
@@ -269,31 +255,31 @@ export type Database = {
       }
       products: {
         Row: {
-          category: number
+          category: number | null
           description: string | null
           image_path: string | null
           name: string
           price: number
           product_id: number
-          stock_quantity: number
+          stock_quantity: number | null
         }
         Insert: {
-          category?: number
+          category?: number | null
           description?: string | null
           image_path?: string | null
           name: string
           price: number
           product_id?: number
-          stock_quantity?: number
+          stock_quantity?: number | null
         }
         Update: {
-          category?: number
+          category?: number | null
           description?: string | null
           image_path?: string | null
           name?: string
           price?: number
           product_id?: number
-          stock_quantity?: number
+          stock_quantity?: number | null
         }
         Relationships: []
       }
@@ -328,13 +314,6 @@ export type Database = {
             foreignKeyName: "wishlist_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "product_sales"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "wishlist_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["product_id"]
           },
@@ -342,25 +321,7 @@ export type Database = {
       }
     }
     Views: {
-      product_sales: {
-        Row: {
-          category: number | null
-          name: string | null
-          product_id: number | null
-          total_revenue: number | null
-          total_sold: number | null
-        }
-        Relationships: []
-      }
-      revenue_stats: {
-        Row: {
-          avg_order_value: number | null
-          daily_revenue: number | null
-          order_date: string | null
-          total_orders: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never

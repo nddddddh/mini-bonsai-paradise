@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Product } from '@/types/supabase';
+import { getCategoryName, CATEGORY_MAPPING } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
@@ -27,7 +29,7 @@ const ProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    category: 1,
     description: '',
     price: 0,
     stock_quantity: 0,
@@ -54,7 +56,12 @@ const ProductManagement = () => {
         .select('*')
         .order('product_id', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+      
+      console.log('Products fetched:', data);
       setProducts(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -70,7 +77,7 @@ const ProductManagement = () => {
     if (searchTerm) {
       filtered = filtered.filter(product => 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+        getCategoryName(product.category).toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -80,7 +87,7 @@ const ProductManagement = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      category: '',
+      category: 1,
       description: '',
       price: 0,
       stock_quantity: 0,
@@ -110,23 +117,53 @@ const ProductManagement = () => {
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error('Tên sản phẩm không được để trống');
+      return;
+    }
+    
+    if (formData.price <= 0) {
+      toast.error('Giá sản phẩm phải lớn hơn 0');
+      return;
+    }
+    
+    if (formData.stock_quantity < 0) {
+      toast.error('Số lượng tồn kho không được âm');
+      return;
+    }
+
     try {
+      console.log('Submitting product:', formData);
+      
       if (editingProduct) {
         // Update existing product
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .update(formData)
-          .eq('product_id', editingProduct.product_id);
+          .eq('product_id', editingProduct.product_id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating product:', error);
+          throw error;
+        }
+        
+        console.log('Product updated:', data);
         toast.success('Cập nhật sản phẩm thành công');
       } else {
         // Create new product
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert(formData);
+          .insert(formData)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating product:', error);
+          throw error;
+        }
+        
+        console.log('Product created:', data);
         toast.success('Thêm sản phẩm thành công');
       }
 
@@ -143,15 +180,21 @@ const ProductManagement = () => {
     if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
 
     try {
+      console.log('Deleting product with ID:', productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('product_id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting product:', error);
+        throw error;
+      }
 
-      setProducts(products.filter(p => p.product_id !== productId));
+      console.log('Product deleted successfully');
       toast.success('Xóa sản phẩm thành công');
+      fetchProducts(); // Refresh the list
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Lỗi khi xóa sản phẩm');
@@ -185,7 +228,7 @@ const ProductManagement = () => {
                   className="pl-10"
                 />
               </div>
-              <Button onClick={handleAddProduct} className="bg-nature-600 hover:bg-nature-700">
+              <Button onClick={handleAddProduct} className="bg-green-600 hover:bg-green-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Thêm Sản Phẩm
               </Button>
@@ -226,7 +269,7 @@ const ProductManagement = () => {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{getCategoryName(product.category)}</TableCell>
                       <TableCell>{product.price.toLocaleString('vi-VN')}₫</TableCell>
                       <TableCell>
                         <span className={product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}>
@@ -271,7 +314,7 @@ const ProductManagement = () => {
             <form onSubmit={handleSubmitProduct} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Tên sản phẩm</Label>
+                  <Label htmlFor="name">Tên sản phẩm *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -281,13 +324,22 @@ const ProductManagement = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Danh mục</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    required
-                  />
+                  <Label htmlFor="category">Danh mục *</Label>
+                  <Select 
+                    value={formData.category.toString()} 
+                    onValueChange={(value) => setFormData({...formData, category: parseInt(value)})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn danh mục" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CATEGORY_MAPPING).map(([id, name]) => (
+                        <SelectItem key={id} value={id}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -303,10 +355,11 @@ const ProductManagement = () => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Giá (VNĐ)</Label>
+                  <Label htmlFor="price">Giá (VNĐ) *</Label>
                   <Input
                     id="price"
                     type="number"
+                    min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
                     required
@@ -314,10 +367,11 @@ const ProductManagement = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="stock_quantity">Số lượng tồn kho</Label>
+                  <Label htmlFor="stock_quantity">Số lượng tồn kho *</Label>
                   <Input
                     id="stock_quantity"
                     type="number"
+                    min="0"
                     value={formData.stock_quantity}
                     onChange={(e) => setFormData({...formData, stock_quantity: Number(e.target.value)})}
                     required
@@ -336,7 +390,7 @@ const ProductManagement = () => {
               </div>
               
               <div className="flex gap-2 pt-4">
-                <Button type="submit" className="bg-nature-600 hover:bg-nature-700">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700">
                   {editingProduct ? 'Cập nhật' : 'Thêm'}
                 </Button>
                 <Button 
