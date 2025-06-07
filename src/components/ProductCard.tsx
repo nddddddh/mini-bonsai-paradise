@@ -23,7 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
     // Convert Product to the format expected by the cart
     const cartProduct = {
-      id: product.product_id,
+      id: product.product_id.toString(),
       name: product.name,
       price: product.price,
       image: product.image_path || '/placeholder.svg',
@@ -40,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    dispatch({ type: 'TOGGLE_FAVORITE', payload: product.product_id });
+    dispatch({ type: 'TOGGLE_FAVORITE', payload: product.product_id.toString() });
     toast({
       title: isFavorite ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích",
       description: `${product.name} ${isFavorite ? 'đã được xóa khỏi' : 'đã được thêm vào'} danh sách yêu thích`,
