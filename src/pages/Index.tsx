@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, Leaf, Shield, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
+import { getCategoryName } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
@@ -46,12 +47,12 @@ const Index = () => {
   const transformProductToPlant = (product: Product) => ({
     id: product.product_id,
     name: product.name,
-    category: product.category,
+    category: getCategoryName(product.category), // Convert number to string
     description: product.description || '',
     price: product.price,
     image: product.image_path || '/placeholder.svg',
     inStock: product.stock_quantity > 0,
-    stock: product.stock_quantity // Add missing stock property
+    stock: product.stock_quantity
   });
 
   return (
