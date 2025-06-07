@@ -6,23 +6,30 @@ import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { getCategoryName } from "@/types/supabase";
 
-interface Collection {
-  id: number;
-  name: string;
+interface CollectionData {
+  categoryId: number;
+  categoryName: string;
+  count: number;
+  image: string;
   slug: string;
-  description: string;
-  long_description: string;
-  image_url: string;
-  category_id: number;
-  featured: boolean;
-  product_count?: number;
 }
 
 const Collections = () => {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<CollectionData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Convert category ID to URL slug
+  const getCategorySlug = (categoryId: number) => {
+    const mapping: Record<number, string> = {
+      1: "cay-co-hoa", // Cây có hoa
+      2: "mini",       // Mini
+      3: "phong-thuy"  // Phong thủy
+    };
+    return mapping[categoryId] || "mini";
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -33,38 +40,63 @@ const Collections = () => {
     try {
       setLoading(true);
 
-      // Fetch collections from database
-      const { data: collectionsData, error: collectionsError } = await supabase
-        .from('collections')
-        .select('*')
-        .order('featured', { ascending: false })
-        .order('name');
+      console.log('=== COLLECTIONS PAGE DEBUG ===');
+      
+      // Get categories with product counts and sample images
+      const { data, error } = await supabase
+        .from('products')
+        .select('category, image_path')
+        .order('product_id', { ascending: true });
 
-      if (collectionsError) {
-        console.error('Error fetching collections:', collectionsError);
-        throw collectionsError;
+      if (error) {
+        console.error('Error fetching collections:', error);
+        throw error;
       }
 
-      // Get product counts for each collection
-      const collectionsWithCounts = await Promise.all(
-        (collectionsData || []).map(async (collection) => {
-          const { count } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('category', collection.category_id);
+      console.log('Products data from database:', data);
 
-          return {
-            ...collection,
-            product_count: count || 0
-          };
-        })
-      );
+      // Group products by category and get first image for each
+      const categoryMap = new Map<number, { count: number; image: string }>();
+      
+      data?.forEach(product => {
+        const categoryId = product.category;
+        console.log('Processing product category ID:', categoryId);
+        
+        if (categoryMap.has(categoryId)) {
+          categoryMap.get(categoryId)!.count += 1;
+        } else {
+          categoryMap.set(categoryId, {
+            count: 1,
+            image: product.image_path || '/placeholder.svg'
+          });
+        }
+      });
 
-      setCollections(collectionsWithCounts);
+      console.log('Category map:', categoryMap);
+
+      // Convert to array format
+      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([categoryId, data]) => {
+        const categoryName = getCategoryName(categoryId);
+        const slug = getCategorySlug(categoryId);
+        console.log(`Collection: ID=${categoryId} -> Name=${categoryName} -> slug=${slug}, count=${data.count}`);
+        
+        return {
+          categoryId,
+          categoryName,
+          count: data.count,
+          image: data.image,
+          slug: slug
+        };
+      });
+
+      console.log('Final collections data:', collectionsData);
+      console.log('=== COLLECTIONS PAGE DEBUG END ===');
+
+      setCollections(collectionsData);
 
       toast({
         title: "Đã tải bộ sưu tập",
-        description: `Tìm thấy ${collectionsWithCounts.length} bộ sưu tập`,
+        description: `Tìm thấy ${collectionsData.length} bộ sưu tập`,
         duration: 3000,
       });
 
@@ -118,26 +150,26 @@ const Collections = () => {
           {collections.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {collections.map((collection) => (
-                <div key={collection.id} className="group cursor-pointer">
+                <div key={collection.categoryId} className="group cursor-pointer">
                   <Link to={`/collections/${collection.slug}`}>
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
                       <div className="aspect-[4/3] overflow-hidden">
                         <img
-                          src={collection.image_url}
-                          alt={collection.name}
+                          src={collection.image}
+                          alt={collection.categoryName}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                       <div className="p-6">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-nature-600 transition-colors">
-                          {collection.name}
+                          {collection.categoryName}
                         </h3>
                         <p className="text-gray-600 mb-4">
-                          {collection.description}
+                          Bộ sưu tập {collection.categoryName.toLowerCase()}
                         </p>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-500">
-                            {collection.product_count || 0} sản phẩm
+                            {collection.count} sản phẩm
                           </span>
                           <Button 
                             variant="outline" 

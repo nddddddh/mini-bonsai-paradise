@@ -9,29 +9,54 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types/supabase';
 import { getCategoryName } from '@/types/supabase';
 
-interface Collection {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  long_description: string;
-  image_url: string;
-  category_id: number;
-  featured: boolean;
-}
+// Collection info mapping
+const getCollectionInfo = (categorySlug: string) => {
+  const collections = {
+    "cay-co-hoa": {
+      name: "Cây có hoa",
+      description: "Những cây có hoa rực rỡ đầy màu sắc",
+      longDescription: "Bộ sưu tập Cây có hoa - những loại cây với hoa đẹp, mang lại sức sống và màu sắc cho không gian của bạn.",
+      imageUrl: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
+      categoryId: 1
+    },
+    "mini": {
+      name: "Mini", 
+      description: "Các loài cây mini xinh xắn, phù hợp mọi không gian",
+      longDescription: "Bộ sưu tập Mini - các loại cây nhỏ xinh, dễ chăm sóc và phù hợp với mọi không gian sống.",
+      imageUrl: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1472&q=80",
+      categoryId: 2
+    },
+    "phong-thuy": {
+      name: "Phong Thủy",
+      description: "Cây phong thủy mang lại may mắn và tài lộc",
+      longDescription: "Bộ sưu tập Phong Thủy - các loại cây được chọn lọc kỹ lưỡng để mang lại vượng khí, tài lộc và sức khỏe.",
+      imageUrl: "https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=713&q=80",
+      categoryId: 3
+    }
+  };
 
-// Filter options - get dynamically from collections
+  return collections[categorySlug as keyof typeof collections] || null;
+};
+
+// Filter options
+const filterOptions = {
+  category: [
+    { id: 1, name: "Cây có hoa" },
+    { id: 2, name: "Mini" },
+    { id: 3, name: "Phong thủy" }
+  ]
+};
+
 const CollectionDetail = () => {
   const { category } = useParams<{ category: string }>();
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [allCollections, setAllCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, number[]>>({
     category: []
@@ -56,56 +81,50 @@ const CollectionDetail = () => {
         return;
       }
 
-      // Get collection info from database
-      const { data: collectionData, error: collectionError } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('slug', category)
-        .single();
+      console.log('=== COLLECTION DETAIL DEBUG START ===');
+      console.log('Category from URL param:', category);
 
-      if (collectionError) {
-        console.error('Error fetching collection:', collectionError);
+      // Get collection info
+      const collectionInfo = getCollectionInfo(category);
+      console.log('Collection info found:', collectionInfo);
+      
+      if (!collectionInfo) {
+        console.log('No collection info found for:', category);
         setCollection(null);
         setLoading(false);
         return;
       }
 
-      setCollection(collectionData);
-
-      // Get all collections for filter options
-      const { data: collectionsData, error: collectionsError } = await supabase
-        .from('collections')
-        .select('*')
-        .order('name');
-
-      if (!collectionsError) {
-        setAllCollections(collectionsData || []);
-      }
+      setCollection(collectionInfo);
 
       // Fetch products by category ID
-      const { data: matchingProducts, error: productsError } = await supabase
+      const { data: matchingProducts, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', collectionData.category_id)
+        .eq('category', collectionInfo.categoryId)
         .order('product_id', { ascending: false });
 
-      if (productsError) {
-        console.error('Database query error:', productsError);
-        throw productsError;
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
       }
+      
+      console.log('Final matching products:', matchingProducts?.length || 0);
+      console.log('=== COLLECTION DETAIL DEBUG END ===');
       
       setProducts(matchingProducts || []);
       
       if (matchingProducts && matchingProducts.length > 0) {
         toast({
-          title: `Bộ sưu tập: ${collectionData.name}`,
+          title: `Bộ sưu tập: ${collectionInfo.name}`,
           description: `Đã tìm thấy ${matchingProducts.length} sản phẩm trong bộ sưu tập này`,
           duration: 3000,
         });
       } else {
+        console.warn('No products found for category:', category);
         toast({
           title: "Không tìm thấy sản phẩm",
-          description: `Không có sản phẩm nào thuộc bộ sưu tập: ${collectionData.name}`,
+          description: `Không có sản phẩm nào thuộc danh mục: ${category}`,
           variant: "destructive",
           duration: 3000,
         });
@@ -221,7 +240,7 @@ const CollectionDetail = () => {
         <div className="relative">
           <div className="h-64 md:h-80 w-full">
             <img
-              src={collection.image_url}
+              src={collection.imageUrl}
               alt={collection.name}
               className="w-full h-full object-cover"
             />
@@ -239,9 +258,9 @@ const CollectionDetail = () => {
                 </div>
               </div>
               
-              {collection.long_description && (
+              {collection.longDescription && (
                 <div className="mt-6 text-gray-600 border-t border-gray-100 pt-6">
-                  <p>{collection.long_description}</p>
+                  <p>{collection.longDescription}</p>
                 </div>
               )}
             </div>
@@ -322,18 +341,18 @@ const CollectionDetail = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pb-3">
                       <div className="space-y-2 mt-2">
-                        {allCollections.map((coll) => (
-                          <div key={coll.id} className="flex items-center space-x-2">
+                        {filterOptions.category.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-2">
                             <Checkbox 
-                              id={`category-${coll.category_id}`} 
-                              checked={filters.category.includes(coll.category_id)}
-                              onCheckedChange={() => toggleFilter('category', coll.category_id)}
+                              id={`category-${option.id}`} 
+                              checked={filters.category.includes(option.id)}
+                              onCheckedChange={() => toggleFilter('category', option.id)}
                             />
                             <label 
-                              htmlFor={`category-${coll.category_id}`}
+                              htmlFor={`category-${option.id}`}
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {coll.name}
+                              {option.name}
                             </label>
                           </div>
                         ))}
@@ -365,18 +384,18 @@ const CollectionDetail = () => {
                     <div className="mb-6">
                       <h3 className="font-medium mb-3">Loại cây</h3>
                       <div className="space-y-2">
-                        {allCollections.map((coll) => (
-                          <div key={coll.id} className="flex items-center space-x-2">
+                        {filterOptions.category.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-2">
                             <Checkbox 
-                              id={`mobile-category-${coll.category_id}`} 
-                              checked={filters.category.includes(coll.category_id)}
-                              onCheckedChange={() => toggleFilter('category', coll.category_id)}
+                              id={`mobile-category-${option.id}`} 
+                              checked={filters.category.includes(option.id)}
+                              onCheckedChange={() => toggleFilter('category', option.id)}
                             />
                             <label 
-                              htmlFor={`mobile-category-${coll.category_id}`}
+                              htmlFor={`mobile-category-${option.id}`}
                               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {coll.name}
+                              {option.name}
                             </label>
                           </div>
                         ))}
@@ -435,6 +454,9 @@ const CollectionDetail = () => {
                 ) : (
                   <div className="text-center py-16 bg-gray-50 rounded-lg">
                     <p className="text-gray-500 mb-4">Không tìm thấy sản phẩm phù hợp trong bộ sưu tập này.</p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Có thể chưa có sản phẩm nào thuộc danh mục "{collection.name}" trong cơ sở dữ liệu.
+                    </p>
                     {activeFilterCount > 0 && (
                       <Button 
                         variant="outline"
