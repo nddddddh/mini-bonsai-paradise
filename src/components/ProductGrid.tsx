@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types/supabase';
+import { Product } from '@/types/database';
 
 const ProductGrid = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -65,7 +65,7 @@ const ProductGrid = () => {
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.product_id} plant={product} />
+              <ProductCard key={product.product_id} product={product} />
             ))}
           </div>
         ) : (

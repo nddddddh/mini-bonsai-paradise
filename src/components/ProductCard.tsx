@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart } from 'lucide-react';
-import { Product } from '../types';
+import { Product, getCategoryName } from '@/types/database';
 import { useApp } from '../context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,11 +17,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
   const { toast } = useToast();
-  const isFavorite = state.favorites.includes(product.id);
+  const isFavorite = state.favorites.includes(product.product_id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigation when clicking add to cart
-    dispatch({ type: 'ADD_TO_CART', payload: product });
+    e.stopPropagation();
+    // Convert Product to the format expected by the cart
+    const cartProduct = {
+      id: product.product_id,
+      name: product.name,
+      price: product.price,
+      image: product.image_path || '/placeholder.svg',
+      category: getCategoryName(product.category),
+      stock: product.stock_quantity || 0,
+      description: product.description || ''
+    };
+    dispatch({ type: 'ADD_TO_CART', payload: cartProduct });
     toast({
       title: "Đã thêm vào giỏ hàng",
       description: `${product.name} đã được thêm vào giỏ hàng`,
@@ -29,8 +39,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigation when clicking favorite
-    dispatch({ type: 'TOGGLE_FAVORITE', payload: product.id });
+    e.stopPropagation();
+    dispatch({ type: 'TOGGLE_FAVORITE', payload: product.product_id });
     toast({
       title: isFavorite ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích",
       description: `${product.name} ${isFavorite ? 'đã được xóa khỏi' : 'đã được thêm vào'} danh sách yêu thích`,
@@ -38,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/product/${product.id}`);
+    navigate(`/product/${product.product_id}`);
   };
 
   const formatPrice = (price: number) => {
@@ -55,15 +65,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       <div className="relative overflow-hidden">
         <img 
-          src={product.image} 
+          src={product.image_path || '/placeholder.svg'} 
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {product.featured && (
-          <Badge className="absolute top-2 left-2">
-            Nổi bật
-          </Badge>
-        )}
         <Button
           variant="ghost"
           size="icon"
@@ -81,8 +86,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <span className="text-2xl font-bold text-green-600">
             {formatPrice(product.price)}
           </span>
-          <Badge variant={product.stock > 0 ? "secondary" : "destructive"}>
-            {product.stock > 0 ? `Còn ${product.stock}` : 'Hết hàng'}
+          <Badge variant={(product.stock_quantity || 0) > 0 ? "secondary" : "destructive"}>
+            {(product.stock_quantity || 0) > 0 ? `Còn ${product.stock_quantity}` : 'Hết hàng'}
           </Badge>
         </div>
       </CardContent>
@@ -91,7 +96,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <Button 
           className="w-full" 
           onClick={handleAddToCart}
-          disabled={product.stock === 0}
+          disabled={(product.stock_quantity || 0) === 0}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
           Thêm vào giỏ

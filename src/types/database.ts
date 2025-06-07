@@ -45,3 +45,20 @@ export interface Wishlist {
   product_id: number;
   created_at: string;
 }
+
+// Category mapping utilities
+export const CATEGORY_MAPPING = {
+  1: "Cây có hoa",
+  2: "Mini", 
+  3: "Phong thủy"
+} as const;
+
+export const getCategoryName = (categoryId: number): string => {
+  return CATEGORY_MAPPING[categoryId as keyof typeof CATEGORY_MAPPING] || "Không xác định";
+};
+
+export const getCategoryId = (categoryName: string): number => {
+  const entries = Object.entries(CATEGORY_MAPPING);
+  const found = entries.find(([_, name]) => name === categoryName);
+  return found ? parseInt(found[0]) : 2; // Default to Mini
+};

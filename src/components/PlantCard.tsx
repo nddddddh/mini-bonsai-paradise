@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
 import { ShoppingCart } from "lucide-react";
-import { Product } from "@/types/database";
-import { getCategoryName } from "@/types/database";
+import { Product, getCategoryName } from "@/types/database";
 
 // Legacy interface for backward compatibility
 export interface Plant {
@@ -31,8 +30,7 @@ const PlantCard = ({ plant }: PlantCardProps) => {
         id: product.product_id,
         name: product.name,
         price: product.price,
-        salePrice: product.salePrice,
-        image: product.image || '',
+        image: product.image_path || '/placeholder.svg',
         category: getCategoryName(product.category),
         stock: product.stock_quantity
       };
