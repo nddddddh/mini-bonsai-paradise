@@ -42,11 +42,10 @@ const Footer = () => {
             <h3 className="font-bold text-lg mb-4">Danh mục</h3>
             <ul className="space-y-2">
               <li><Link to="/products" className="text-gray-600 hover:text-nature-600">Tất cả sản phẩm</Link></li>
-              <li><Link to="/collections/terrarium" className="text-gray-600 hover:text-nature-600">Terrarium</Link></li>
-              <li><Link to="/collections/bonsai" className="text-gray-600 hover:text-nature-600">Cây Bonsai Mini</Link></li>
-              <li><Link to="/collections/sen-da" className="text-gray-600 hover:text-nature-600">Sen Đá</Link></li>
-              <li><Link to="/collections/cay-khong-khi" className="text-gray-600 hover:text-nature-600">Cây Không Khí</Link></li>
-              <li><Link to="/collections/accessories" className="text-gray-600 hover:text-nature-600">Phụ Kiện</Link></li>
+              <li><Link to="/collections/cay-co-hoa" className="text-gray-600 hover:text-nature-600">Cây có hoa</Link></li>
+              <li><Link to="/collections/mini" className="text-gray-600 hover:text-nature-600">Cây Mini</Link></li>
+              <li><Link to="/collections/phong-thuy" className="text-gray-600 hover:text-nature-600">Cây Phong Thủy</Link></li>
+              <li><Link to="/collections" className="text-gray-600 hover:text-nature-600">Bộ sưu tập</Link></li>
             </ul>
           </div>
           
@@ -54,11 +53,8 @@ const Footer = () => {
             <h3 className="font-bold text-lg mb-4">Thông tin</h3>
             <ul className="space-y-2">
               <li><Link to="/about" className="text-gray-600 hover:text-nature-600">Về chúng tôi</Link></li>
-              <li><Link to="/contact" className="text-gray-600 hover:text-nature-600">Liên hệ</Link></li>
-              <li><Link to="/care-guide" className="text-gray-600 hover:text-nature-600">Hướng dẫn chăm sóc</Link></li>
-              <li><Link to="/shipping" className="text-gray-600 hover:text-nature-600">Chính sách vận chuyển</Link></li>
-              <li><Link to="/returns" className="text-gray-600 hover:text-nature-600">Chính sách đổi trả</Link></li>
-              <li><Link to="/faq" className="text-gray-600 hover:text-nature-600">Câu hỏi thường gặp</Link></li>
+              <li><Link to="/care-guide" className="text-gray-600 hover:text-nature-600">Chăm sóc</Link></li>
+              <li><a href="#" className="text-gray-600 hover:text-nature-600">Chính sách đổi trả trong 7 ngày</a></li>
             </ul>
           </div>
           
@@ -70,27 +66,33 @@ const Footer = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-gray-600">123 Đường Cây Xanh, Quận 1, TP.HCM</span>
+                <a 
+                  href="https://maps.google.com/?q=Đại học FPT Hòa Lạc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-nature-600"
+                >
+                  Đại học FPT, Hòa Lạc, Hà Nội
+                </a>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-nature-600 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span className="text-gray-600">contact@bonsaihub.com</span>
+                <a href="mailto:duongcujer@gmail.com" className="text-gray-600 hover:text-nature-600">duongcujer@gmail.com</a>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-nature-600 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <span className="text-gray-600">+84 123 456 789</span>
+                <a href="tel:0971075226" className="text-gray-600 hover:text-nature-600">0971075226</a>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-nature-600 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-gray-600">
-                  <p>Thứ 2 - Thứ 6: 9:00 - 18:00</p>
-                  <p>Thứ 7 - Chủ nhật: 10:00 - 17:00</p>
+                  <p>Hoạt động 24/7</p>
                 </div>
               </li>
             </ul>
@@ -99,7 +101,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-200 mt-12 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; 2023 BonsaiHub. Tất cả các quyền được bảo lưu.
+            &copy; 2024 BonsaiHub. Tất cả các quyền được bảo lưu.
           </p>
         </div>
       </div>
