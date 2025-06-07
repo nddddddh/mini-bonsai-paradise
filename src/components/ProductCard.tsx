@@ -17,7 +17,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
   const { toast } = useToast();
-  const isFavorite = state.favorites.includes(product.product_id);
+  const isFavorite = state.favorites.includes(product.product_id.toString());
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
