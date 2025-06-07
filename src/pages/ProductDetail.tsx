@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import WishlistButton from "@/components/WishlistButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
+import { getCategoryName } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
 const ProductDetail = () => {
@@ -70,7 +71,7 @@ const ProductDetail = () => {
       name: product.name,
       price: product.price,
       image: product.image_path || '/placeholder.svg',
-      category: product.category,
+      category: getCategoryName(product.category),
       stock: product.stock_quantity
     };
     
@@ -176,7 +177,7 @@ const ProductDetail = () => {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Badge variant="outline" className="text-nature-600 border-nature-600">
-                  {product.category}
+                  {getCategoryName(product.category)}
                 </Badge>
                 <Badge variant={product.stock_quantity > 0 ? "default" : "destructive"}>
                   {product.stock_quantity > 0 ? 'Còn hàng' : 'Hết hàng'}

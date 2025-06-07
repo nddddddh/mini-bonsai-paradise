@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/use-cart';
 import { Wishlist as WishlistType, Product } from '@/types/supabase';
+import { getCategoryName } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
@@ -86,7 +87,7 @@ const Wishlist = () => {
       name: product.name,
       price: product.price,
       image: product.image_path || '',
-      category: product.category,
+      category: getCategoryName(product.category),
       stock: product.stock_quantity
     };
     
@@ -156,7 +157,7 @@ const Wishlist = () => {
                     <CardContent className="p-4">
                       <div className="mb-2">
                         <h3 className="font-semibold text-lg line-clamp-2">{item.product.name}</h3>
-                        <p className="text-sm text-gray-600">{item.product.category}</p>
+                        <p className="text-sm text-gray-600">{getCategoryName(item.product.category)}</p>
                       </div>
                       
                       <p className="text-gray-700 text-sm mb-4 line-clamp-2">

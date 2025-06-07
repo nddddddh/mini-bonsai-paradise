@@ -13,7 +13,7 @@ export interface Plant {
   price: number;
   salePrice?: number;
   image: string;
-  category: string | number;
+  category: string;
   stock: number;
 }
 
@@ -33,7 +33,7 @@ const PlantCard = ({ plant }: PlantCardProps) => {
         price: product.price,
         salePrice: product.salePrice,
         image: product.image || '',
-        category: typeof product.category === 'number' ? getCategoryName(product.category) : product.category,
+        category: getCategoryName(product.category),
         stock: product.stock_quantity
       };
     }
