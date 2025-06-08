@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Product } from '@/types/supabase';
-import { getCategoryName, CATEGORY_MAPPING } from '@/types/supabase';
+import { Product } from '@/types/database';
+import { getCategoryName, CATEGORY_MAPPING } from '@/types/database';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
@@ -25,8 +25,10 @@ const ProductManagement = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 1,
@@ -94,6 +96,7 @@ const ProductManagement = () => {
       image_path: ''
     });
     setEditingProduct(null);
+    setSelectedFile(null);
   };
 
   const handleAddProduct = () => {
@@ -107,11 +110,52 @@ const ProductManagement = () => {
       category: product.category,
       description: product.description || '',
       price: product.price,
-      stock_quantity: product.stock_quantity,
+      stock_quantity: product.stock_quantity || 0,
       image_path: product.image_path || ''
     });
     setEditingProduct(product);
     setIsDialogOpen(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      
+      // Tạo tên file unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      console.log('Uploading file:', fileName);
+      
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      // Lấy public URL
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      console.log('File uploaded successfully:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Lỗi khi upload ảnh');
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmitProduct = async (e: React.FormEvent) => {
@@ -134,13 +178,23 @@ const ProductManagement = () => {
     }
 
     try {
-      console.log('Submitting product:', formData);
+      let finalFormData = { ...formData };
+      
+      // Upload ảnh nếu có file được chọn
+      if (selectedFile) {
+        const uploadedImageUrl = await uploadImage(selectedFile);
+        if (uploadedImageUrl) {
+          finalFormData.image_path = uploadedImageUrl;
+        }
+      }
+
+      console.log('Submitting product:', finalFormData);
       
       if (editingProduct) {
         // Update existing product
         const { data, error } = await supabase
           .from('products')
-          .update(formData)
+          .update(finalFormData)
           .eq('product_id', editingProduct.product_id)
           .select();
 
@@ -155,7 +209,7 @@ const ProductManagement = () => {
         // Create new product
         const { data, error } = await supabase
           .from('products')
-          .insert(formData)
+          .insert(finalFormData)
           .select();
 
         if (error) {
@@ -272,8 +326,8 @@ const ProductManagement = () => {
                       <TableCell>{getCategoryName(product.category)}</TableCell>
                       <TableCell>{product.price.toLocaleString('vi-VN')}₫</TableCell>
                       <TableCell>
-                        <span className={product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {product.stock_quantity}
+                        <span className={(product.stock_quantity || 0) > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {product.stock_quantity || 0}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -380,18 +434,48 @@ const ProductManagement = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="image_path">URL hình ảnh</Label>
-                <Input
-                  id="image_path"
-                  value={formData.image_path}
-                  onChange={(e) => setFormData({...formData, image_path: e.target.value})}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label htmlFor="image">Hình ảnh sản phẩm</Label>
+                <div className="flex gap-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="flex-1"
+                  />
+                  {selectedFile && (
+                    <div className="flex items-center text-sm text-green-600">
+                      <Upload className="h-4 w-4 mr-1" />
+                      {selectedFile.name}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image_url">Hoặc nhập URL ảnh</Label>
+                  <Input
+                    id="image_url"
+                    value={formData.image_path}
+                    onChange={(e) => setFormData({...formData, image_path: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                {(formData.image_path || selectedFile) && (
+                  <div className="mt-2">
+                    <img 
+                      src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_path}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded border"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2 pt-4">
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  {editingProduct ? 'Cập nhật' : 'Thêm'}
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={uploading}
+                >
+                  {uploading ? 'Đang upload...' : editingProduct ? 'Cập nhật' : 'Thêm'}
                 </Button>
                 <Button 
                   type="button" 
