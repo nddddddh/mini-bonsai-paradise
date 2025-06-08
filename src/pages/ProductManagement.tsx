@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,39 +118,85 @@ const ProductManagement = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      
+      // Kiểm tra kích thước file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Kích thước file không được vượt quá 5MB');
+        return;
+      }
+      
+      // Kiểm tra loại file
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)');
+        return;
+      }
+      
+      console.log('File selected:', file.name, file.type, file.size);
+      setSelectedFile(file);
     }
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
+      console.log('Starting upload process...');
       
-      // Tạo tên file unique
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Tạo tên file unique với timestamp và random string
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       
-      console.log('Uploading file:', fileName);
-      
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, file);
+      console.log('Uploading to bucket: product-images, fileName:', fileName);
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
 
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
+      // Upload file vào Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw uploadError;
       }
 
-      // Lấy public URL
+      console.log('Upload successful:', uploadData);
+
+      // Lấy public URL của file đã upload
       const { data: urlData } = supabase.storage
         .from('product-images')
         .getPublicUrl(fileName);
 
-      console.log('File uploaded successfully:', urlData.publicUrl);
+      console.log('Public URL generated:', urlData.publicUrl);
+      
+      if (!urlData.publicUrl) {
+        throw new Error('Không thể tạo URL cho ảnh');
+      }
+
+      toast.success('Upload ảnh thành công!');
       return urlData.publicUrl;
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error('Lỗi khi upload ảnh');
+      
+      // Xử lý các loại lỗi cụ thể
+      if (error.message?.includes('not allowed')) {
+        toast.error('Không có quyền upload ảnh. Vui lòng kiểm tra cấu hình bucket.');
+      } else if (error.message?.includes('quota')) {
+        toast.error('Đã vượt quá dung lượng cho phép.');
+      } else if (error.message?.includes('network')) {
+        toast.error('Lỗi mạng. Vui lòng thử lại.');
+      } else {
+        toast.error(`Lỗi upload ảnh: ${error.message || 'Không xác định'}`);
+      }
+      
       return null;
     } finally {
       setUploading(false);
@@ -182,13 +227,18 @@ const ProductManagement = () => {
       
       // Upload ảnh nếu có file được chọn
       if (selectedFile) {
+        console.log('Uploading selected file...');
         const uploadedImageUrl = await uploadImage(selectedFile);
         if (uploadedImageUrl) {
           finalFormData.image_path = uploadedImageUrl;
+          console.log('Image uploaded successfully, URL:', uploadedImageUrl);
+        } else {
+          console.log('Image upload failed, continuing without image');
+          // Không return ở đây, vẫn cho phép tạo sản phẩm mà không có ảnh
         }
       }
 
-      console.log('Submitting product:', finalFormData);
+      console.log('Submitting product data:', finalFormData);
       
       if (editingProduct) {
         // Update existing product
@@ -203,7 +253,7 @@ const ProductManagement = () => {
           throw error;
         }
         
-        console.log('Product updated:', data);
+        console.log('Product updated successfully:', data);
         toast.success('Cập nhật sản phẩm thành công');
       } else {
         // Create new product
@@ -217,16 +267,16 @@ const ProductManagement = () => {
           throw error;
         }
         
-        console.log('Product created:', data);
+        console.log('Product created successfully:', data);
         toast.success('Thêm sản phẩm thành công');
       }
 
       setIsDialogOpen(false);
       resetForm();
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Lỗi khi lưu sản phẩm');
+      toast.error(`Lỗi khi lưu sản phẩm: ${error.message || 'Không xác định'}`);
     }
   };
 
@@ -249,9 +299,9 @@ const ProductManagement = () => {
       console.log('Product deleted successfully');
       toast.success('Xóa sản phẩm thành công');
       fetchProducts(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting product:', error);
-      toast.error('Lỗi khi xóa sản phẩm');
+      toast.error(`Lỗi khi xóa sản phẩm: ${error.message || 'Không xác định'}`);
     }
   };
 
@@ -320,6 +370,10 @@ const ProductManagement = () => {
                           src={product.image_path || '/placeholder.svg'} 
                           alt={product.name}
                           className="w-16 h-16 object-cover rounded"
+                          onError={(e) => {
+                            console.log('Image load error for:', product.image_path);
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{product.name}</TableCell>
@@ -358,7 +412,7 @@ const ProductManagement = () => {
 
         {/* Add/Edit Product Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? 'Chỉnh Sửa Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
@@ -433,24 +487,42 @@ const ProductManagement = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="image">Hình ảnh sản phẩm</Label>
-                <div className="flex gap-4">
+              <div className="space-y-3">
+                <Label>Hình ảnh sản phẩm</Label>
+                
+                {/* File upload section */}
+                <div className="space-y-2">
+                  <Label htmlFor="image-file" className="text-sm font-medium">Tải ảnh từ máy tính</Label>
                   <Input
+                    id="image-file"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
                     onChange={handleFileSelect}
-                    className="flex-1"
+                    className="cursor-pointer"
                   />
+                  <p className="text-xs text-gray-500">
+                    Chấp nhận: JPEG, PNG, WebP. Tối đa 5MB.
+                  </p>
                   {selectedFile && (
-                    <div className="flex items-center text-sm text-green-600">
-                      <Upload className="h-4 w-4 mr-1" />
-                      {selectedFile.name}
+                    <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
+                      <Upload className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-700">{selectedFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                        className="ml-auto h-6 w-6 p-0"
+                      >
+                        ×
+                      </Button>
                     </div>
                   )}
                 </div>
+
+                {/* URL input section */}
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">Hoặc nhập URL ảnh</Label>
+                  <Label htmlFor="image_url" className="text-sm font-medium">Hoặc nhập URL ảnh</Label>
                   <Input
                     id="image_url"
                     value={formData.image_path}
@@ -458,24 +530,33 @@ const ProductManagement = () => {
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
+
+                {/* Image preview */}
                 {(formData.image_path || selectedFile) && (
-                  <div className="mt-2">
-                    <img 
-                      src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_path}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded border"
-                    />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Xem trước</Label>
+                    <div className="border rounded-lg p-2 bg-gray-50">
+                      <img 
+                        src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_path}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded border mx-auto"
+                        onError={(e) => {
+                          console.log('Preview image error');
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
               
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-4 border-t">
                 <Button 
                   type="submit" 
                   className="bg-green-600 hover:bg-green-700"
                   disabled={uploading}
                 >
-                  {uploading ? 'Đang upload...' : editingProduct ? 'Cập nhật' : 'Thêm'}
+                  {uploading ? 'Đang xử lý...' : editingProduct ? 'Cập nhật' : 'Thêm sản phẩm'}
                 </Button>
                 <Button 
                   type="button" 
@@ -484,6 +565,7 @@ const ProductManagement = () => {
                     setIsDialogOpen(false);
                     resetForm();
                   }}
+                  disabled={uploading}
                 >
                   Hủy
                 </Button>
