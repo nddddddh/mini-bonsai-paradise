@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Product } from '@/types/database';
@@ -28,6 +29,7 @@ const ProductManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     category: 1,
@@ -96,6 +98,7 @@ const ProductManagement = () => {
     });
     setEditingProduct(null);
     setSelectedFile(null);
+    setPreviewUrl('');
   };
 
   const handleAddProduct = () => {
@@ -113,48 +116,55 @@ const ProductManagement = () => {
       image_path: product.image_path || ''
     });
     setEditingProduct(product);
+    setPreviewUrl(product.image_path || '');
     setIsDialogOpen(true);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      // Kiểm tra kích thước file (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Kích thước file không được vượt quá 5MB');
-        return;
-      }
-      
-      // Kiểm tra loại file
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)');
-        return;
-      }
-      
-      console.log('File selected:', file.name, file.type, file.size);
-      setSelectedFile(file);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)');
+      return;
     }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước file không được vượt quá 5MB');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.type, file.size);
+    setSelectedFile(file);
+    
+    // Create preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    
+    // Clear image_path when file is selected
+    setFormData(prev => ({ ...prev, image_path: '' }));
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
     try {
-      setUploading(true);
-      console.log('Starting upload process...');
-      
-      // Tạo tên file unique với timestamp và random string
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      
-      console.log('Uploading to bucket: product-images, fileName:', fileName);
+      console.log('=== Starting image upload ===');
       console.log('File details:', {
         name: file.name,
         type: file.type,
         size: file.size
       });
 
-      // Upload file vào Supabase Storage
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      
+      console.log('Generated filename:', fileName);
+      console.log('Uploading to bucket: product-images');
+
+      // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(fileName, file, {
@@ -163,43 +173,27 @@ const ProductManagement = () => {
         });
 
       if (uploadError) {
-        console.error('Upload error details:', uploadError);
-        throw uploadError;
+        console.error('Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
       console.log('Upload successful:', uploadData);
 
-      // Lấy public URL của file đã upload
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('product-images')
         .getPublicUrl(fileName);
 
-      console.log('Public URL generated:', urlData.publicUrl);
-      
-      if (!urlData.publicUrl) {
-        throw new Error('Không thể tạo URL cho ảnh');
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to get public URL');
       }
 
-      toast.success('Upload ảnh thành công!');
+      console.log('Public URL generated:', urlData.publicUrl);
       return urlData.publicUrl;
-      
+
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      
-      // Xử lý các loại lỗi cụ thể
-      if (error.message?.includes('not allowed')) {
-        toast.error('Không có quyền upload ảnh. Vui lòng kiểm tra cấu hình bucket.');
-      } else if (error.message?.includes('quota')) {
-        toast.error('Đã vượt quá dung lượng cho phép.');
-      } else if (error.message?.includes('network')) {
-        toast.error('Lỗi mạng. Vui lòng thử lại.');
-      } else {
-        toast.error(`Lỗi upload ảnh: ${error.message || 'Không xác định'}`);
-      }
-      
-      return null;
-    } finally {
-      setUploading(false);
+      console.error('=== Upload error ===', error);
+      throw error;
     }
   };
 
@@ -223,28 +217,40 @@ const ProductManagement = () => {
     }
 
     try {
-      let finalFormData = { ...formData };
-      
-      // Upload ảnh nếu có file được chọn
+      setUploading(true);
+      let finalImagePath = formData.image_path;
+
+      // Upload image if file is selected
       if (selectedFile) {
-        console.log('Uploading selected file...');
-        const uploadedImageUrl = await uploadImage(selectedFile);
-        if (uploadedImageUrl) {
-          finalFormData.image_path = uploadedImageUrl;
-          console.log('Image uploaded successfully, URL:', uploadedImageUrl);
-        } else {
-          console.log('Image upload failed, continuing without image');
-          // Không return ở đây, vẫn cho phép tạo sản phẩm mà không có ảnh
+        console.log('=== Starting upload process ===');
+        toast.loading('Đang upload ảnh...');
+        
+        const uploadedUrl = await uploadImageToSupabase(selectedFile);
+        if (uploadedUrl) {
+          finalImagePath = uploadedUrl;
+          toast.dismiss();
+          toast.success('Upload ảnh thành công!');
+          console.log('Final image URL:', finalImagePath);
         }
       }
 
-      console.log('Submitting product data:', finalFormData);
-      
+      const productData = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        price: formData.price,
+        stock_quantity: formData.stock_quantity,
+        image_path: finalImagePath
+      };
+
+      console.log('=== Saving product ===');
+      console.log('Product data:', productData);
+
       if (editingProduct) {
         // Update existing product
         const { data, error } = await supabase
           .from('products')
-          .update(finalFormData)
+          .update(productData)
           .eq('product_id', editingProduct.product_id)
           .select();
 
@@ -253,13 +259,13 @@ const ProductManagement = () => {
           throw error;
         }
         
-        console.log('Product updated successfully:', data);
+        console.log('Product updated:', data);
         toast.success('Cập nhật sản phẩm thành công');
       } else {
         // Create new product
         const { data, error } = await supabase
           .from('products')
-          .insert(finalFormData)
+          .insert(productData)
           .select();
 
         if (error) {
@@ -267,7 +273,7 @@ const ProductManagement = () => {
           throw error;
         }
         
-        console.log('Product created successfully:', data);
+        console.log('Product created:', data);
         toast.success('Thêm sản phẩm thành công');
       }
 
@@ -276,7 +282,9 @@ const ProductManagement = () => {
       fetchProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error(`Lỗi khi lưu sản phẩm: ${error.message || 'Không xác định'}`);
+      toast.error(`Lỗi: ${error.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -298,11 +306,19 @@ const ProductManagement = () => {
 
       console.log('Product deleted successfully');
       toast.success('Xóa sản phẩm thành công');
-      fetchProducts(); // Refresh the list
+      fetchProducts();
     } catch (error: any) {
       console.error('Error deleting product:', error);
-      toast.error(`Lỗi khi xóa sản phẩm: ${error.message || 'Không xác định'}`);
+      toast.error(`Lỗi khi xóa sản phẩm: ${error.message}`);
     }
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(editingProduct?.image_path || '');
   };
 
   if (!user || !isAdmin()) {
@@ -487,57 +503,59 @@ const ProductManagement = () => {
                 </div>
               </div>
               
+              {/* Image Upload Section */}
               <div className="space-y-3">
                 <Label>Hình ảnh sản phẩm</Label>
                 
-                {/* File upload section */}
+                {/* File Upload */}
                 <div className="space-y-2">
-                  <Label htmlFor="image-file" className="text-sm font-medium">Tải ảnh từ máy tính</Label>
-                  <Input
-                    id="image-file"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={handleFileSelect}
-                    className="cursor-pointer"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleFileSelect}
+                      className="flex-1"
+                    />
+                    {selectedFile && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeSelectedFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500">
                     Chấp nhận: JPEG, PNG, WebP. Tối đa 5MB.
                   </p>
-                  {selectedFile && (
-                    <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
-                      <Upload className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-green-700">{selectedFile.name}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedFile(null)}
-                        className="ml-auto h-6 w-6 p-0"
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
-                {/* URL input section */}
+                {/* URL Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="image_url" className="text-sm font-medium">Hoặc nhập URL ảnh</Label>
+                  <Label htmlFor="image_url">Hoặc nhập URL ảnh</Label>
                   <Input
                     id="image_url"
                     value={formData.image_path}
-                    onChange={(e) => setFormData({...formData, image_path: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, image_path: e.target.value});
+                      if (e.target.value) {
+                        setPreviewUrl(e.target.value);
+                      }
+                    }}
                     placeholder="https://example.com/image.jpg"
+                    disabled={!!selectedFile}
                   />
                 </div>
 
-                {/* Image preview */}
-                {(formData.image_path || selectedFile) && (
+                {/* Image Preview */}
+                {previewUrl && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Xem trước</Label>
+                    <Label>Xem trước</Label>
                     <div className="border rounded-lg p-2 bg-gray-50">
                       <img 
-                        src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_path}
+                        src={previewUrl}
                         alt="Preview"
                         className="w-32 h-32 object-cover rounded border mx-auto"
                         onError={(e) => {
