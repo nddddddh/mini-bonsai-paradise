@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -12,30 +13,66 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [heroImage, setHeroImage] = useState<string>('/placeholder.svg');
+  const [totalProducts, setTotalProducts] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchFeaturedProducts();
+    fetchData();
   }, []);
 
-  const fetchFeaturedProducts = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch featured products
+      const { data: products, error: productsError } = await supabase
         .from('products')
         .select('*')
         .limit(8)
         .order('product_id', { ascending: false });
 
-      if (error) throw error;
+      if (productsError) throw productsError;
       
-      setFeaturedProducts(data || []);
+      setFeaturedProducts(products || []);
+
+      // Fetch total products count
+      const { count, error: countError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) throw countError;
+      
+      setTotalProducts(count || 0);
+
+      // Fetch random product image for hero
+      const { data: randomProduct, error: randomError } = await supabase
+        .from('products')
+        .select('image_path')
+        .not('image_path', 'is', null)
+        .limit(1)
+        .order('product_id', { ascending: Math.random() > 0.5 });
+
+      if (!randomError && randomProduct && randomProduct.length > 0) {
+        const imageUrl = randomProduct[0].image_path;
+        if (imageUrl) {
+          // Check if it's a Supabase storage URL or external URL
+          if (imageUrl.startsWith('product-images/')) {
+            const { data } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(imageUrl);
+            setHeroImage(data.publicUrl);
+          } else {
+            setHeroImage(imageUrl);
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error fetching featured products:', error);
+      console.error('Error fetching data:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể tải sản phẩm nổi bật",
+        description: "Không thể tải dữ liệu trang chủ",
         variant: "destructive",
       });
     } finally {
@@ -69,7 +106,7 @@ const Index = () => {
                 <span className="text-nature-600">thiên đường xanh</span>
               </h1>
               <p className="text-lg text-gray-600 mb-8">
-                Khám phá bộ sưu tập cây cảnh đa dạng với hơn 500+ loại cây trong nhà và ngoài trời. 
+                Khám phá bộ sưu tập cây cảnh đa dạng với hơn {totalProducts}+ loại cây trong nhà và ngoài trời. 
                 Chúng tôi cung cấp những cây cảnh chất lượng cao cùng dịch vụ chăm sóc tận tâm.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -88,15 +125,16 @@ const Index = () => {
             </div>
             <div className="relative">
               <img 
-                src="/placeholder.svg" 
+                src={heroImage} 
                 alt="Cây cảnh đẹp" 
-                className="w-full h-auto rounded-2xl shadow-xl"
+                className="w-full h-auto rounded-2xl shadow-xl object-cover"
+                style={{ aspectRatio: '4/3' }}
               />
               <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg">
                 <div className="flex items-center space-x-2">
                   <Leaf className="h-8 w-8 text-nature-600" />
                   <div>
-                    <p className="font-semibold">500+</p>
+                    <p className="font-semibold">{totalProducts}+</p>
                     <p className="text-sm text-gray-600">Loại cây</p>
                   </div>
                 </div>
