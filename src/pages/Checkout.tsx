@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -380,7 +380,7 @@ const Checkout = ({ navigate }: CheckoutProps) => {
                     htmlFor="agreeToTerms"
                     className={`text-sm font-normal ${formErrors.agreeToTerms ? "text-red-500" : ""}`}
                   >
-                    Tôi đã đọc và đồng ý với <Link to="/terms" className="text-nature-600">điều khoản dịch vụ</Link> của MiniPlants
+                    Tôi đã đọc và đồng ý với <button onClick={() => navigate("/terms")} className="text-nature-600 underline">điều khoản dịch vụ</button> của MiniPlants
                   </Label>
                   {formErrors.agreeToTerms && (
                     <p className="text-sm text-red-500">{formErrors.agreeToTerms}</p>
