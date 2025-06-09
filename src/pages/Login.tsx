@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,11 +10,14 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-const Login = () => {
+interface LoginProps {
+  navigate: (path: string) => void;
+}
+
+const Login = ({ navigate }: LoginProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -41,7 +43,7 @@ const Login = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>
@@ -71,9 +73,9 @@ const Login = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Mật khẩu</Label>
-                    <Link to="/forgot-password" className="text-sm font-medium text-nature-600 hover:text-nature-700">
+                    <button type="button" onClick={() => navigate('/forgot-password')} className="text-sm font-medium text-nature-600 hover:text-nature-700">
                       Quên mật khẩu?
-                    </Link>
+                    </button>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -100,15 +102,15 @@ const Login = () => {
             <CardFooter className="flex flex-col items-center">
               <div className="text-sm text-gray-600">
                 Chưa có tài khoản?{" "}
-                <Link to="/register" className="font-semibold text-nature-600 hover:text-nature-700">
+                <button onClick={() => navigate('/register')} className="font-semibold text-nature-600 hover:text-nature-700">
                   Đăng ký
-                </Link>
+                </button>
               </div>
             </CardFooter>
           </Card>
         </div>
       </div>
-      <Footer />
+      <Footer navigate={navigate} />
     </>
   );
 };

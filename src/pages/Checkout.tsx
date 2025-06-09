@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,8 +12,11 @@ import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-const Checkout = () => {
-  const navigate = useNavigate();
+interface CheckoutProps {
+  navigate: (path: string) => void;
+}
+
+const Checkout = ({ navigate }: CheckoutProps) => {
   const { items, clearCart, cartTotal } = useCart();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -236,14 +238,14 @@ const Checkout = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
+          <button onClick={() => navigate('/')} className="hover:text-nature-600">Trang chủ</button>
           <span className="mx-2">/</span>
-          <Link to="/cart" className="hover:text-nature-600">Giỏ hàng</Link>
+          <button onClick={() => navigate('/cart')} className="hover:text-nature-600">Giỏ hàng</button>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">Thanh toán</span>
         </div>
@@ -387,12 +389,10 @@ const Checkout = () => {
               </div>
               
               <div className="mt-8 flex flex-wrap gap-4">
-                <Link to="/cart">
-                  <Button type="button" variant="outline" className="flex items-center gap-2 border-nature-500 text-nature-700 hover:bg-nature-50">
-                    <ChevronLeft className="w-4 h-4" />
-                    Quay lại giỏ hàng
-                  </Button>
-                </Link>
+                <Button type="button" variant="outline" className="flex items-center gap-2 border-nature-500 text-nature-700 hover:bg-nature-50" onClick={() => navigate('/cart')}>
+                  <ChevronLeft className="w-4 h-4" />
+                  Quay lại giỏ hàng
+                </Button>
                 <Button 
                   type="submit" 
                   className="bg-nature-600 hover:bg-nature-700 text-white ml-auto"
@@ -458,7 +458,7 @@ const Checkout = () => {
       </div>
       
       <div className="mt-auto">
-        <Footer />
+        <Footer navigate={navigate} />
       </div>
     </div>
   );

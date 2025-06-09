@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,8 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName, getCategoryId } from "@/types/supabase";
 
-const CategoryProducts = () => {
-  const { category } = useParams();
+interface CategoryProductsProps {
+  navigate: (path: string) => void;
+  category?: string;
+}
+
+const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
+  const { category: categoryParam } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -29,23 +32,23 @@ const CategoryProducts = () => {
 
   // Convert category URL param to display name
   const getCategoryDisplayName = () => {
-    if (!category) return "Sản phẩm";
-    const categoryId = getCategoryIdFromSlug(category);
+    if (!categoryParam) return "Sản phẩm";
+    const categoryId = getCategoryIdFromSlug(categoryParam);
     return getCategoryName(categoryId);
   };
 
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProductsByCategory();
-  }, [category]);
+  }, [categoryParam]);
 
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
       
-      if (!category) return;
+      if (!categoryParam) return;
       
-      const categoryId = getCategoryIdFromSlug(category);
+      const categoryId = getCategoryIdFromSlug(categoryParam);
       
       const { data, error } = await supabase
         .from('products')
@@ -101,27 +104,27 @@ const CategoryProducts = () => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
           </div>
         </div>
-        <Footer />
+        <Footer navigate={navigate} />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
+          <button onClick={() => navigate('/')} className="hover:text-nature-600">Trang chủ</button>
           <span className="mx-2">/</span>
-          <Link to="/products" className="hover:text-nature-600">Sản phẩm</Link>
+          <button onClick={() => navigate('/products')} className="hover:text-nature-600">Sản phẩm</button>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">{getCategoryDisplayName()}</span>
         </div>
@@ -142,11 +145,9 @@ const CategoryProducts = () => {
             </div>
             
             <div className="text-center">
-              <Link to="/products">
-                <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
-                  Xem tất cả sản phẩm <ChevronRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
+              <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50" onClick={() => navigate('/products')}>
+                Xem tất cả sản phẩm <ChevronRight className="ml-2 w-4 h-4" />
+              </Button>
             </div>
           </>
         ) : (
@@ -158,16 +159,14 @@ const CategoryProducts = () => {
             </div>
             <h3 className="text-xl font-semibold mb-2">Không tìm thấy sản phẩm nào</h3>
             <p className="text-gray-600 mb-6">Không có sản phẩm nào thuộc danh mục này</p>
-            <Link to="/products">
-              <Button className="bg-nature-600 hover:bg-nature-700">
-                Xem tất cả sản phẩm
-              </Button>
-            </Link>
+            <Button className="bg-nature-600 hover:bg-nature-700" onClick={() => navigate('/products')}>
+              Xem tất cả sản phẩm
+            </Button>
           </div>
         )}
       </div>
       
-      <Footer />
+      <Footer navigate={navigate} />
     </div>
   );
 };

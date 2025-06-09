@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
@@ -7,7 +6,11 @@ import { useApp } from '../context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/database';
 
-const Favorites = () => {
+interface FavoritesProps {
+  navigate: (path: string) => void;
+}
+
+const Favorites = ({ navigate }: FavoritesProps) => {
   const { state } = useApp();
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +54,7 @@ const Favorites = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Bạn chưa đăng nhập</h2>
-          <Button onClick={() => window.location.href = '/'}>Về trang chủ</Button>
+          <Button onClick={() => navigate('/')}>Về trang chủ</Button>
         </div>
       </div>
     );
@@ -97,7 +100,7 @@ const Favorites = () => {
             <p className="text-gray-600 mb-6">
               Hãy khám phá các sản phẩm và thêm vào danh sách yêu thích của bạn
             </p>
-            <Button onClick={() => window.location.href = '/'}>
+            <Button onClick={() => navigate('/')}>
               Khám phá sản phẩm
             </Button>
           </div>

@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,11 +9,14 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-const LoginAdmin = () => {
+interface LoginAdminProps {
+  navigate: (path: string) => void;
+}
+
+const LoginAdmin = ({ navigate }: LoginAdminProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { login, isAdmin } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -47,7 +48,7 @@ const LoginAdmin = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>
@@ -109,7 +110,7 @@ const LoginAdmin = () => {
           </Card>
         </div>
       </div>
-      <Footer />
+      <Footer navigate={navigate} />
     </>
   );
 };
