@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ const OrderManagement = ({ navigate }: OrderManagementProps) => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('order_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching orders:', error);
@@ -71,7 +72,7 @@ const OrderManagement = ({ navigate }: OrderManagementProps) => {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: number, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('orders')

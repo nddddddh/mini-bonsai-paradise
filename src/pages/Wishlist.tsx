@@ -20,16 +20,16 @@ const Wishlist = ({ navigate }: WishlistProps) => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleAddToBag = (plant: any) => {
-    // Convert product to Plant format for cart compatibility
+  const handleAddToBag = (item: any) => {
+    // Convert product to cart format
     const cartItem = {
-      id: plant.product?.product_id || plant.id,
-      name: plant.product?.name || plant.name,
-      price: plant.product?.price || plant.price,
-      salePrice: plant.product?.sale_price || plant.salePrice,
-      image: plant.product?.image_url || plant.image,
-      category: plant.product?.category || plant.category,
-      stock: plant.product?.stock || plant.stock || 10
+      id: item.product?.product_id || item.product_id,
+      name: item.product?.name || item.name,
+      price: item.product?.price || item.price,
+      salePrice: item.product?.sale_price || item.salePrice,
+      image: item.product?.image_path || item.image,
+      category: item.product?.category || item.category,
+      stock: item.product?.stock_quantity || item.stock || 10
     };
     
     addItem(cartItem);
@@ -80,7 +80,7 @@ const Wishlist = ({ navigate }: WishlistProps) => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {wishlistItems.map((item) => (
-              <Card key={item.wishlist_id}>
+              <Card key={item.id}>
                 <PlantCard plant={item.product} />
                 <CardContent className="flex items-center justify-between">
                   <Button

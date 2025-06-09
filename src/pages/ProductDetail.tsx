@@ -31,7 +31,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
-  const { addItem: addWishlistItem, removeItem: removeWishlistItem, wishlist } = useWishlist();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
 
@@ -44,16 +44,17 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   const fetchProduct = async (productId: string) => {
     try {
       setLoading(true);
+      const productIdNum = parseInt(productId);
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('product_id', productId)
+        .eq('product_id', productIdNum)
         .single();
 
       if (error) {
         console.error('Error fetching product:', error);
         // Fallback to mock data
-        const mockProduct = mockProducts.find(p => p.product_id === productId);
+        const mockProduct = mockProducts.find(p => p.product_id === productIdNum);
         setProduct(mockProduct || null);
       } else {
         // Use database data if available, otherwise fallback to mock data
@@ -62,7 +63,8 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
     } catch (error) {
       console.error('Error fetching product:', error);
       // Fallback to mock data
-      const mockProduct = mockProducts.find(p => p.product_id === productId);
+      const productIdNum = parseInt(productId);
+      const mockProduct = mockProducts.find(p => p.product_id === productIdNum);
       setProduct(mockProduct || null);
     } finally {
       setLoading(false);
@@ -73,7 +75,9 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
     if (product) {
       addItem({
         ...product,
-        quantity,
+        id: product.product_id,
+        image: product.image_path || '/placeholder.svg',
+        stock: product.stock_quantity || 0
       });
       toast({
         title: "Thêm vào giỏ hàng thành công!",
@@ -84,7 +88,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
 
   const handleAddToWishlist = () => {
     if (product) {
-      addWishlistItem(product);
+      addToWishlist(product.product_id);
       toast({
         title: "Thêm vào yêu thích thành công!",
         description: `Đã thêm ${product.name} vào danh sách yêu thích.`,
@@ -94,7 +98,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
 
   const handleRemoveFromWishlist = () => {
     if (product) {
-      removeWishlistItem(product.product_id);
+      removeFromWishlist(product.product_id);
       toast({
         title: "Xóa khỏi yêu thích thành công!",
         description: `Đã xóa ${product.name} khỏi danh sách yêu thích.`,
@@ -102,7 +106,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
     }
   };
 
-  const isProductInWishlist = product ? wishlist.some(item => item.product_id === product.product_id) : false;
+  const isProductInWishlist = product ? isInWishlist(product.product_id) : false;
 
   const incrementQuantity = () => {
     setQuantity(prev => prev + 1);
