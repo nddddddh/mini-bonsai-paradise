@@ -13,7 +13,6 @@ import { Search, Filter, SlidersHorizontal, ChevronDown, Grid, List } from 'luci
 import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import ProductCard from '@/components/ProductCard';
 import { plants } from '@/data/plants';
 import { products } from '@/data/products';
 import { CollectionDetailProps } from '@/types/navigation';
@@ -37,6 +36,27 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
     };
     return categoryNames[cat] || 'Sản phẩm';
   };
+
+  // Combine and normalize data from both sources
+  const allItems = [
+    ...plants.map(plant => ({
+      id: plant.id,
+      name: plant.name,
+      description: plant.description,
+      price: plant.price,
+      image: plant.image,
+      type: 'plant' as const,
+      difficulty: plant.difficulty
+    })),
+    ...products.map(product => ({
+      id: product.product_id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image: product.image_path,
+      type: 'product' as const
+    }))
+  ];
 
   return (
     <>
@@ -145,9 +165,9 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
           ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
           : "space-y-4"
         }>
-          {[...plants, ...products].slice(0, 12).map((item) => (
+          {allItems.slice(0, 12).map((item) => (
             <button
-              key={item.id}
+              key={`${item.type}-${item.id}`}
               onClick={() => navigate('product-detail', { id: item.id.toString() })}
               className="text-left"
             >
@@ -165,7 +185,7 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
                   <span className="text-lg font-semibold text-nature-600">
                     {item.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                   </span>
-                  {'difficulty' in item && (
+                  {item.type === 'plant' && 'difficulty' in item && (
                     <Badge variant="secondary">{item.difficulty}</Badge>
                   )}
                 </div>
