@@ -1,4 +1,5 @@
 
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
 import { ShoppingCart } from "lucide-react";
@@ -17,10 +18,9 @@ export interface Plant {
 
 interface PlantCardProps {
   plant: Product | Plant;
-  navigate: (page: string, params?: { [key: string]: string }) => void;
 }
 
-const PlantCard = ({ plant, navigate }: PlantCardProps) => {
+const PlantCard = ({ plant }: PlantCardProps) => {
   const { addItem } = useCart();
 
   // Convert Product to Plant format for backward compatibility
@@ -44,13 +44,9 @@ const PlantCard = ({ plant, navigate }: PlantCardProps) => {
     addItem(plantData);
   };
 
-  const handleCardClick = () => {
-    navigate('product-detail', { id: plantData.id.toString() });
-  };
-
   return (
     <div className="plant-card bg-white rounded-lg overflow-hidden border shadow-sm h-full flex flex-col">
-      <button onClick={handleCardClick} className="overflow-hidden">
+      <Link to={`/products/${plantData.id}`} className="overflow-hidden">
         <div className="h-64 overflow-hidden">
           <img 
             src={plantData.image} 
@@ -58,12 +54,12 @@ const PlantCard = ({ plant, navigate }: PlantCardProps) => {
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
         </div>
-      </button>
+      </Link>
       <div className="p-4 flex flex-col flex-grow">
         <div className="flex-grow">
-          <button onClick={handleCardClick}>
+          <Link to={`/products/${plantData.id}`}>
             <h3 className="font-medium text-lg hover:text-nature-600 transition-colors">{plantData.name}</h3>
-          </button>
+          </Link>
           <p className="text-sm text-gray-500 mb-2">{plantData.category}</p>
           <div className="flex items-center mt-1">
             {plantData.salePrice ? (

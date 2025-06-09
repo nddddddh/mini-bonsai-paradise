@@ -3,25 +3,35 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import { useApp } from '../context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/database';
-import { PageProps } from '@/types/navigation';
 
-const Favorites = ({ navigate }: PageProps) => {
+const Favorites = () => {
+  const { state } = useApp();
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchFavoriteProducts();
-  }, []);
+  }, [state.favorites]);
 
   const fetchFavoriteProducts = async () => {
+    if (state.favorites.length === 0) {
+      setFavoriteProducts([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      // Convert string IDs back to numbers for database query
+      const favoriteIds = state.favorites.map(id => parseInt(id)).filter(id => !isNaN(id));
       
       const { data, error } = await supabase
         .from('products')
-        .select('*');
+        .select('*')
+        .in('product_id', favoriteIds);
 
       if (error) {
         console.error('Error fetching favorite products:', error);
@@ -35,6 +45,17 @@ const Favorites = ({ navigate }: PageProps) => {
       setLoading(false);
     }
   };
+
+  if (!state.isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Bạn chưa đăng nhập</h2>
+          <Button onClick={() => window.location.href = '/'}>Về trang chủ</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -64,7 +85,7 @@ const Favorites = ({ navigate }: PageProps) => {
         {favoriteProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {favoriteProducts.map(product => (
-              <ProductCard key={product.product_id} product={product} navigate={navigate} />
+              <ProductCard key={product.product_id} product={product} />
             ))}
           </div>
         ) : (
@@ -76,7 +97,7 @@ const Favorites = ({ navigate }: PageProps) => {
             <p className="text-gray-600 mb-6">
               Hãy khám phá các sản phẩm và thêm vào danh sách yêu thích của bạn
             </p>
-            <Button onClick={() => navigate('home')}>
+            <Button onClick={() => window.location.href = '/'}>
               Khám phá sản phẩm
             </Button>
           </div>

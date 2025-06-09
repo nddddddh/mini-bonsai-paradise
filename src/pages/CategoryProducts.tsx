@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,9 +10,9 @@ import PlantCard from "@/components/PlantCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName, getCategoryId } from "@/types/supabase";
-import { CategoryProductsProps } from "@/types/navigation";
 
-const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
+const CategoryProducts = () => {
+  const { category } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -99,27 +101,27 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar navigate={navigate} />
+        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
           </div>
         </div>
-        <Footer navigate={navigate} />
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <button onClick={() => navigate('home')} className="hover:text-nature-600">Trang chủ</button>
+          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
           <span className="mx-2">/</span>
-          <button onClick={() => navigate('products')} className="hover:text-nature-600">Sản phẩm</button>
+          <Link to="/products" className="hover:text-nature-600">Sản phẩm</Link>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">{getCategoryDisplayName()}</span>
         </div>
@@ -135,16 +137,16 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {products.map(product => (
-                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} navigate={navigate} />
+                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} />
               ))}
             </div>
             
             <div className="text-center">
-              <button onClick={() => navigate('products')}>
+              <Link to="/products">
                 <Button variant="outline" className="border-nature-500 text-nature-700 hover:bg-nature-50">
                   Xem tất cả sản phẩm <ChevronRight className="ml-2 w-4 h-4" />
                 </Button>
-              </button>
+              </Link>
             </div>
           </>
         ) : (
@@ -156,16 +158,16 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
             </div>
             <h3 className="text-xl font-semibold mb-2">Không tìm thấy sản phẩm nào</h3>
             <p className="text-gray-600 mb-6">Không có sản phẩm nào thuộc danh mục này</p>
-            <button onClick={() => navigate('products')}>
+            <Link to="/products">
               <Button className="bg-nature-600 hover:bg-nature-700">
                 Xem tất cả sản phẩm
               </Button>
-            </button>
+            </Link>
           </div>
         )}
       </div>
       
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };

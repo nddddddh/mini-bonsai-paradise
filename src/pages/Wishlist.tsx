@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
@@ -11,21 +12,21 @@ import { getCategoryName } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
-import { PageProps } from '@/types/navigation';
 
 interface WishlistItem extends WishlistType {
   product: Product;
 }
 
-const Wishlist = ({ navigate }: PageProps) => {
+const Wishlist = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
-      navigate('login');
+      navigate('/login');
       return;
     }
     fetchWishlist();
@@ -100,7 +101,7 @@ const Wishlist = ({ navigate }: PageProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -129,7 +130,7 @@ const Wishlist = ({ navigate }: PageProps) => {
                 <p className="text-gray-500 mb-6">
                   Hãy thêm những sản phẩm bạn yêu thích để mua sau nhé!
                 </p>
-                <Button onClick={() => navigate('products')}>
+                <Button onClick={() => navigate('/products')}>
                   Khám phá sản phẩm
                 </Button>
               </div>
@@ -187,7 +188,7 @@ const Wishlist = ({ navigate }: PageProps) => {
                         </Button>
                         <Button 
                           variant="outline"
-                          onClick={() => navigate('product-detail', { id: item.product.product_id.toString() })}
+                          onClick={() => navigate(`/products/${item.product.product_id}`)}
                         >
                           Xem chi tiết
                         </Button>

@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -7,15 +8,20 @@ import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Mail } from 'lucide-react';
-import { PageProps } from '@/types/navigation';
 
-const VerifyEmail = ({ navigate }: PageProps) => {
+const VerifyEmail = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(60);
-  const email = 'user@example.com'; // This would come from navigation state in a real app
+  const location = useLocation();
+  const navigate = useNavigate();
+  const email = location.state?.email || '';
 
   useEffect(() => {
+    if (!email) {
+      navigate('/register');
+    }
+    
     let interval: number | undefined;
     if (resendCountdown > 0) {
       interval = window.setInterval(() => {
@@ -26,7 +32,7 @@ const VerifyEmail = ({ navigate }: PageProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [resendCountdown]);
+  }, [email, navigate, resendCountdown]);
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +48,7 @@ const VerifyEmail = ({ navigate }: PageProps) => {
     // This is just a simulation
     setTimeout(() => {
       toast.success("Xác thực email thành công!");
-      navigate('login');
+      navigate('/login');
       setIsLoading(false);
     }, 1500);
   };
@@ -54,7 +60,7 @@ const VerifyEmail = ({ navigate }: PageProps) => {
 
   return (
     <>
-      <Navbar navigate={navigate} />
+      <Navbar />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>

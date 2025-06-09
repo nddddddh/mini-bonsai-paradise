@@ -1,128 +1,256 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Eye, Search, Filter, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Order, OrderDetail, Product, Account } from '@/types/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { PageProps } from '@/types/navigation';
+import { toast } from 'sonner';
 
-// Mock order data
-const orders = [
-  {
-    id: 1,
-    customer: "Nguyễn Văn A",
-    email: "nguyenvana@email.com",
-    phone: "0901234567",
-    total: 450000,
-    status: "pending",
-    date: "2024-01-15",
-    items: [
-      { name: "Terrarium Rừng Nhiệt Đới Mini", quantity: 1, price: 450000 }
-    ]
-  },
-  {
-    id: 2,
-    customer: "Trần Thị B",
-    email: "tranthib@email.com", 
-    phone: "0912345678",
-    total: 670000,
-    status: "processing", 
-    date: "2024-01-14",
-    items: [
-      { name: "Bonsai Cần Thăng Mini", quantity: 1, price: 550000 },
-      { name: "Sen Đá Nhỏ Xinh", quantity: 1, price: 120000 }
-    ]
-  },
-  {
-    id: 3,
-    customer: "Lê Văn C",
-    email: "levanc@email.com",
-    phone: "0923456789", 
-    total: 180000,
-    status: "completed",
-    date: "2024-01-13",
-    items: [
-      { name: "Không Khí Tillandsia", quantity: 1, price: 180000 }
-    ]
-  }
-];
+interface OrderWithDetails extends Order {
+  account: Account;
+  order_details: (OrderDetail & { product: Product })[];
+}
 
-const OrderManagement = ({ navigate }: PageProps) => {
+const OrderManagement = () => {
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<OrderWithDetails[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Chờ xử lý</Badge>;
-      case 'processing':
-        return <Badge variant="outline" className="text-blue-600 border-blue-600">Đang xử lý</Badge>;
-      case 'completed':
-        return <Badge variant="outline" className="text-green-600 border-green-600">Hoàn thành</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  useEffect(() => {
+    if (!user || !isAdmin()) {
+      navigate('/login');
+      return;
+    }
+    fetchOrders();
+  }, [user, navigate]);
+
+  useEffect(() => {
+    filterOrders();
+  }, [orders, searchTerm, statusFilter]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching orders...');
+      
+      // Fetch orders with account details
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          accounts(*)
+        `)
+        .order('order_date', { ascending: false });
+
+      if (ordersError) {
+        console.error('Orders error:', ordersError);
+        throw ordersError;
+      }
+
+      console.log('Orders data:', ordersData);
+
+      // Fetch order details with products for each order
+      const ordersWithDetails: OrderWithDetails[] = [];
+      
+      for (const order of ordersData || []) {
+        const { data: detailsData, error: detailsError } = await supabase
+          .from('order_details')
+          .select(`
+            *,
+            products(*)
+          `)
+          .eq('order_id', order.order_id);
+
+        if (detailsError) {
+          console.error('Order details error:', detailsError);
+          throw detailsError;
+        }
+
+        console.log(`Order ${order.order_id} details:`, detailsData);
+
+        // Transform the data to match our interface
+        const transformedDetails = detailsData?.map(detail => ({
+          ...detail,
+          product: detail.products
+        })) || [];
+
+        // Cast the order data to our interface
+        const transformedOrder: OrderWithDetails = {
+          order_id: order.order_id,
+          account_id: order.account_id,
+          order_date: order.order_date,
+          total_amount: order.total_amount,
+          status: order.status,
+          account: order.accounts,
+          order_details: transformedDetails
+        };
+
+        ordersWithDetails.push(transformedOrder);
+      }
+
+      console.log('Final orders with details:', ordersWithDetails);
+      setOrders(ordersWithDetails);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Lỗi khi tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleStatusChange = (orderId: number, newStatus: string) => {
-    toast.success(`Đã cập nhật trạng thái đơn hàng #${orderId}`);
+  const filterOrders = () => {
+    let filtered = orders;
+
+    if (searchTerm) {
+      filtered = filtered.filter(order => 
+        order.order_id.toString().includes(searchTerm) ||
+        order.account.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.account.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    setFilteredOrders(filtered);
   };
 
-  const handleViewOrder = (order: any) => {
-    setSelectedOrder(order);
-    setShowOrderDetail(true);
+  const updateOrderStatus = async (orderId: number, newStatus: string) => {
+    try {
+      console.log('Updating order status:', orderId, newStatus);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('order_id', orderId);
+
+      if (error) {
+        console.error('Update order status error:', error);
+        throw error;
+      }
+
+      // Update local state
+      setOrders(orders.map(order => 
+        order.order_id === orderId 
+          ? { ...order, status: newStatus }
+          : order
+      ));
+
+      // Update selected order if it's the one being updated
+      if (selectedOrder && selectedOrder.order_id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+
+      toast.success('Cập nhật trạng thái đơn hàng thành công');
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Lỗi khi cập nhật trạng thái đơn hàng');
+    }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const deleteOrder = async (orderId: number) => {
+    try {
+      console.log('Deleting order:', orderId);
+      
+      // First delete order details
+      const { error: detailsError } = await supabase
+        .from('order_details')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (detailsError) {
+        console.error('Delete order details error:', detailsError);
+        throw detailsError;
+      }
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (orderError) {
+        console.error('Delete order error:', orderError);
+        throw orderError;
+      }
+
+      // Update local state
+      setOrders(orders.filter(order => order.order_id !== orderId));
+      
+      toast.success('Xóa đơn hàng thành công');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Lỗi khi xóa đơn hàng');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Chờ xử lý':
+        return <Badge variant="secondary">Chờ xử lý</Badge>;
+      case 'Đã giao':
+        return <Badge className="bg-green-100 text-green-800">Đã giao</Badge>;
+      case 'Đã hủy':
+        return <Badge variant="destructive">Đã hủy</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  if (!user || !isAdmin()) {
+    return null;
+  }
 
   return (
-    <>
-      <Navbar navigate={navigate} />
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Quản lý đơn hàng</h1>
-            <p className="text-gray-600 mt-2">Quản lý và theo dõi các đơn hàng</p>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Hàng</h1>
+          <p className="text-gray-600 mt-2">Theo dõi và quản lý tất cả đơn hàng</p>
         </div>
 
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Tìm kiếm khách hàng..."
+                  placeholder="Tìm kiếm theo mã đơn, tên khách hàng hoặc email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Trạng thái" />
+                <SelectTrigger className="w-full md:w-48">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Lọc theo trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="pending">Chờ xử lý</SelectItem>
-                  <SelectItem value="processing">Đang xử lý</SelectItem>
-                  <SelectItem value="completed">Hoàn thành</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
+                  <SelectItem value="Đã giao">Đã giao</SelectItem>
+                  <SelectItem value="Đã hủy">Đã hủy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -132,117 +260,183 @@ const OrderManagement = ({ navigate }: PageProps) => {
         {/* Orders Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Danh sách đơn hàng</CardTitle>
+            <CardTitle>Danh Sách Đơn Hàng ({filteredOrders.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã đơn</TableHead>
-                  <TableHead>Khách hàng</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Tổng tiền</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Ngày đặt</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>{order.email}</TableCell>
-                    <TableCell>
-                      {order.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell>{new Date(order.date).toLocaleDateString('vi-VN')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewOrder(order)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Select
-                          value={order.status}
-                          onValueChange={(value) => handleStatusChange(order.id, value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Chờ xử lý</SelectItem>
-                            <SelectItem value="processing">Đang xử lý</SelectItem>
-                            <SelectItem value="completed">Hoàn thành</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Đang tải...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mã Đơn</TableHead>
+                    <TableHead>Khách Hàng</TableHead>
+                    <TableHead>Ngày Đặt</TableHead>
+                    <TableHead>Tổng Tiền</TableHead>
+                    <TableHead>Trạng Thái</TableHead>
+                    <TableHead>Thao Tác</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order.order_id}>
+                      <TableCell className="font-medium">#{order.order_id}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{order.account.full_name}</div>
+                          <div className="text-sm text-gray-500">{order.account.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(order.order_date).toLocaleDateString('vi-VN')}
+                      </TableCell>
+                      <TableCell>{order.total_amount.toLocaleString('vi-VN')}₫</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Xem
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Chi Tiết Đơn Hàng #{selectedOrder?.order_id}</DialogTitle>
+                              </DialogHeader>
+                              {selectedOrder && (
+                                <div className="space-y-6">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Thông Tin Khách Hàng</h4>
+                                      <p><strong>Tên:</strong> {selectedOrder.account.full_name}</p>
+                                      <p><strong>Email:</strong> {selectedOrder.account.email}</p>
+                                      <p><strong>Điện thoại:</strong> {selectedOrder.account.phone || 'Chưa cập nhật'}</p>
+                                      <p><strong>Địa chỉ:</strong> {selectedOrder.account.address || 'Chưa cập nhật'}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Thông Tin Đơn Hàng</h4>
+                                      <p><strong>Ngày đặt:</strong> {new Date(selectedOrder.order_date).toLocaleString('vi-VN')}</p>
+                                      <p><strong>Trạng thái:</strong> {getStatusBadge(selectedOrder.status)}</p>
+                                      <p><strong>Tổng tiền:</strong> {selectedOrder.total_amount.toLocaleString('vi-VN')}₫</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <h4 className="font-semibold mb-4">Sản Phẩm Đặt Mua</h4>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Sản Phẩm</TableHead>
+                                          <TableHead>Số Lượng</TableHead>
+                                          <TableHead>Đơn Giá</TableHead>
+                                          <TableHead>Thành Tiền</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {selectedOrder.order_details.map((detail) => (
+                                          <TableRow key={detail.order_detail_id}>
+                                            <TableCell>
+                                              <div className="flex items-center space-x-3">
+                                                <img 
+                                                  src={detail.product.image_path || '/placeholder.svg'} 
+                                                  alt={detail.product.name}
+                                                  className="w-12 h-12 object-cover rounded"
+                                                />
+                                                <div>
+                                                  <p className="font-medium">{detail.product.name}</p>
+                                                  <p className="text-sm text-gray-500">{detail.product.category}</p>
+                                                </div>
+                                              </div>
+                                            </TableCell>
+                                            <TableCell>{detail.quantity}</TableCell>
+                                            <TableCell>{detail.price.toLocaleString('vi-VN')}₫</TableCell>
+                                            <TableCell>{(detail.quantity * detail.price).toLocaleString('vi-VN')}₫</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <Select 
+                                      value={selectedOrder.status} 
+                                      onValueChange={(value) => updateOrderStatus(selectedOrder.order_id, value)}
+                                    >
+                                      <SelectTrigger className="w-48">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
+                                        <SelectItem value="Đã giao">Đã giao</SelectItem>
+                                        <SelectItem value="Đã hủy">Đã hủy</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <Select 
+                            value={order.status} 
+                            onValueChange={(value) => updateOrderStatus(order.order_id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
+                              <SelectItem value="Đã giao">Đã giao</SelectItem>
+                              <SelectItem value="Đã hủy">Đã hủy</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn xóa đơn hàng #{order.order_id}? 
+                                  Hành động này không thể hoàn tác.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteOrder(order.order_id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
-
-        {/* Order Detail Dialog */}
-        <Dialog open={showOrderDetail} onOpenChange={setShowOrderDetail}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Chi tiết đơn hàng #{selectedOrder?.id}</DialogTitle>
-            </DialogHeader>
-            
-            {selectedOrder && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Thông tin khách hàng</h3>
-                    <p><strong>Tên:</strong> {selectedOrder.customer}</p>
-                    <p><strong>Email:</strong> {selectedOrder.email}</p>
-                    <p><strong>SĐT:</strong> {selectedOrder.phone}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Thông tin đơn hàng</h3>
-                    <p><strong>Ngày đặt:</strong> {new Date(selectedOrder.date).toLocaleDateString('vi-VN')}</p>
-                    <p><strong>Trạng thái:</strong> {getStatusBadge(selectedOrder.status)}</p>
-                    <p><strong>Tổng tiền:</strong> {selectedOrder.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-2">Sản phẩm</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tên sản phẩm</TableHead>
-                        <TableHead>Số lượng</TableHead>
-                        <TableHead>Đơn giá</TableHead>
-                        <TableHead>Thành tiền</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedOrder.items.map((item: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</TableCell>
-                          <TableCell>{(item.quantity * item.price).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
+      
       <Footer />
-    </>
+    </div>
   );
 };
 

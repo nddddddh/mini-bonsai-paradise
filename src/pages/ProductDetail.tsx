@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
-import { ChevronLeft, ShoppingCart, Truck, Shield, RefreshCw } from "lucide-react";
+import { ChevronLeft, ShoppingCart, Heart, Truck, Shield, RefreshCw } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WishlistButton from "@/components/WishlistButton";
@@ -10,9 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
-import { ProductDetailProps } from "@/types/navigation";
 
-const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
+const ProductDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
@@ -21,10 +24,10 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    if (productId) {
+    if (id) {
       fetchProduct();
     }
-  }, [productId]);
+  }, [id]);
 
   const fetchProduct = async () => {
     try {
@@ -32,7 +35,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('product_id', parseInt(productId!))
+        .eq('product_id', parseInt(id!))
         .single();
 
       if (error) {
@@ -42,7 +45,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
           description: "Sản phẩm không tồn tại",
           variant: "destructive",
         });
-        navigate('products');
+        navigate('/products');
         return;
       }
 
@@ -54,7 +57,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
         description: "Không thể tải thông tin sản phẩm",
         variant: "destructive",
       });
-      navigate('products');
+      navigate('/products');
     } finally {
       setLoading(false);
     }
@@ -85,7 +88,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar navigate={navigate} />
+        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
@@ -99,13 +102,13 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   if (!product) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar navigate={navigate} />
+        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <h2 className="text-2xl font-bold mb-4">Sản phẩm không tồn tại</h2>
-            <button onClick={() => navigate('products')}>
-              <button className="bg-blue-500 text-white px-4 py-2 rounded">Quay lại danh sách sản phẩm</button>
-            </button>
+            <Link to="/products">
+              <Button>Quay lại danh sách sản phẩm</Button>
+            </Link>
           </div>
         </div>
         <Footer />
@@ -113,29 +116,33 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
     );
   }
 
+  // Use placeholder images if no image available
   const productImages = product.image_path ? [product.image_path] : ['/placeholder.svg'];
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <button onClick={() => navigate('home')} className="hover:text-nature-600">Trang chủ</button>
+          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
           <span className="mx-2">/</span>
-          <button onClick={() => navigate('products')} className="hover:text-nature-600">Sản phẩm</button>
+          <Link to="/products" className="hover:text-nature-600">Sản phẩm</Link>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">{product.name}</span>
         </div>
 
-        <button onClick={() => navigate('products')}>
-          <button className="mb-6 border border-nature-500 text-nature-700 hover:bg-nature-50 px-4 py-2 rounded flex items-center">
+        {/* Back Button */}
+        <Link to="/products">
+          <Button variant="outline" className="mb-6 border-nature-500 text-nature-700 hover:bg-nature-50">
             <ChevronLeft className="w-4 h-4 mr-2" />
             Quay lại
-          </button>
-        </button>
+          </Button>
+        </Link>
 
         <div className="grid lg:grid-cols-2 gap-12">
+          {/* Product Images */}
           <div className="space-y-4">
             <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100">
               <img 
@@ -165,6 +172,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
             )}
           </div>
 
+          {/* Product Info */}
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -190,6 +198,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
               </p>
             </div>
 
+            {/* Quantity Selector */}
             <div>
               <h3 className="font-semibold mb-3">Số lượng</h3>
               <div className="flex items-center gap-3 mb-6">
@@ -213,6 +222,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="flex gap-4">
               <Button 
                 onClick={handleAddToCart} 
@@ -228,6 +238,7 @@ const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
               />
             </div>
 
+            {/* Product Features */}
             <div className="grid grid-cols-1 gap-4 pt-6 border-t">
               <div className="flex items-center gap-3">
                 <Truck className="w-5 h-5 text-nature-600" />

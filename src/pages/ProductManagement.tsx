@@ -1,157 +1,346 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Search, Plus, Edit, Trash2, Upload } from 'lucide-react';
-import { toast } from "sonner";
+
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Edit, Trash2, Search, Upload, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Product } from '@/types/database';
+import { getCategoryName, CATEGORY_MAPPING } from '@/types/database';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { PageProps } from '@/types/navigation';
+import { toast } from 'sonner';
 
-// Mock product data
-const products = [
-  {
-    id: 1,
-    name: "Terrarium Rừng Nhiệt Đới Mini",
-    category: "Terrarium",
-    price: 450000,
-    stock: 15,
-    status: "active" as const,
-    image: "https://images.unsplash.com/photo-1508022713622-df2d8fb7b4cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80"
-  },
-  {
-    id: 2,
-    name: "Bonsai Cần Thăng Mini", 
-    category: "Bonsai",
-    price: 550000,
-    stock: 8,
-    status: "active" as const,
-    image: "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?ixlib=rb-4.0.3&auto=format&fit=crop&w=735&q=80"
-  },
-  {
-    id: 3,
-    name: "Sen Đá Nhỏ Xinh",
-    category: "Sen đá", 
-    price: 120000,
-    stock: 0,
-    status: "inactive" as const,
-    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&auto=format&fit=crop&w=1472&q=80"
-  }
-];
-
-type ProductStatus = "active" | "inactive" | "draft";
-
-const ProductManagement = ({ navigate }: PageProps) => {
+const ProductManagement = () => {
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showEditProduct, setShowEditProduct] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [newProduct, setNewProduct] = useState({
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    category: 1,
     description: '',
-    price: '',
-    stock: '',
-    status: 'active' as ProductStatus,
-    image: ''
+    price: 0,
+    stock_quantity: 0,
+    image_path: ''
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="outline" className="text-green-600 border-green-600">Hoạt động</Badge>;
-      case 'inactive':
-        return <Badge variant="destructive">Ngừng bán</Badge>;
-      case 'draft':
-        return <Badge variant="secondary">Bản nháp</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  useEffect(() => {
+    if (!user || !isAdmin()) {
+      navigate('/login');
+      return;
     }
+    fetchProducts();
+  }, [user, navigate]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm]);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('product_id', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+      
+      console.log('Products fetched:', data);
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Lỗi khi tải danh sách sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterProducts = () => {
+    let filtered = products;
+
+    if (searchTerm) {
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getCategoryName(product.category).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      category: 1,
+      description: '',
+      price: 0,
+      stock_quantity: 0,
+      image_path: ''
+    });
+    setEditingProduct(null);
+    setSelectedFile(null);
+    setPreviewUrl('');
   };
 
   const handleAddProduct = () => {
-    toast.success("Đã thêm sản phẩm mới!");
-    setShowAddProduct(false);
-    setNewProduct({
-      name: '',
-      category: '',
-      description: '',
-      price: '',
-      stock: '',
-      status: 'active',
-      image: ''
-    });
+    resetForm();
+    setIsDialogOpen(true);
   };
 
-  const handleEditProduct = (product: any) => {
-    setSelectedProduct(product);
-    setNewProduct({
+  const handleEditProduct = (product: Product) => {
+    setFormData({
       name: product.name,
       category: product.category,
       description: product.description || '',
-      price: product.price.toString(),
-      stock: product.stock.toString(),
-      status: product.status,
-      image: product.image
+      price: product.price,
+      stock_quantity: product.stock_quantity || 0,
+      image_path: product.image_path || ''
     });
-    setShowEditProduct(true);
+    setEditingProduct(product);
+    setPreviewUrl(product.image_path || '');
+    setIsDialogOpen(true);
   };
 
-  const handleUpdateProduct = () => {
-    toast.success(`Đã cập nhật sản phẩm "${selectedProduct?.name}"`);
-    setShowEditProduct(false);
-    setSelectedProduct(null);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước file không được vượt quá 5MB');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.type, file.size);
+    setSelectedFile(file);
+    
+    // Create preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    
+    // Clear image_path when file is selected
+    setFormData(prev => ({ ...prev, image_path: '' }));
   };
 
-  const handleDeleteProduct = (product: any) => {
-    if (confirm(`Bạn có chắc muốn xóa sản phẩm "${product.name}"?`)) {
-      toast.success(`Đã xóa sản phẩm "${product.name}"`);
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      console.log('=== Starting image upload ===');
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      
+      console.log('Generated filename:', fileName);
+      console.log('Uploading to bucket: product-images');
+
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to get public URL');
+      }
+
+      console.log('Public URL generated:', urlData.publicUrl);
+      return urlData.publicUrl;
+
+    } catch (error: any) {
+      console.error('=== Upload error ===', error);
+      throw error;
     }
   };
 
-  const handleStatusChange = (productId: number, newStatus: ProductStatus) => {
-    toast.success(`Đã cập nhật trạng thái sản phẩm`);
+  const handleSubmitProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error('Tên sản phẩm không được để trống');
+      return;
+    }
+    
+    if (formData.price <= 0) {
+      toast.error('Giá sản phẩm phải lớn hơn 0');
+      return;
+    }
+    
+    if (formData.stock_quantity < 0) {
+      toast.error('Số lượng tồn kho không được âm');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      let finalImagePath = formData.image_path;
+
+      // Upload image if file is selected
+      if (selectedFile) {
+        console.log('=== Starting upload process ===');
+        toast.loading('Đang upload ảnh...');
+        
+        const uploadedUrl = await uploadImageToSupabase(selectedFile);
+        if (uploadedUrl) {
+          finalImagePath = uploadedUrl;
+          toast.dismiss();
+          toast.success('Upload ảnh thành công!');
+          console.log('Final image URL:', finalImagePath);
+        }
+      }
+
+      const productData = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        price: formData.price,
+        stock_quantity: formData.stock_quantity,
+        image_path: finalImagePath
+      };
+
+      console.log('=== Saving product ===');
+      console.log('Product data:', productData);
+
+      if (editingProduct) {
+        // Update existing product
+        const { data, error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('product_id', editingProduct.product_id)
+          .select();
+
+        if (error) {
+          console.error('Error updating product:', error);
+          throw error;
+        }
+        
+        console.log('Product updated:', data);
+        toast.success('Cập nhật sản phẩm thành công');
+      } else {
+        // Create new product
+        const { data, error } = await supabase
+          .from('products')
+          .insert(productData)
+          .select();
+
+        if (error) {
+          console.error('Error creating product:', error);
+          throw error;
+        }
+        
+        console.log('Product created:', data);
+        toast.success('Thêm sản phẩm thành công');
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      toast.error(`Lỗi: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || product.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const handleDeleteProduct = async (productId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+
+    try {
+      console.log('Deleting product with ID:', productId);
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('product_id', productId);
+
+      if (error) {
+        console.error('Error deleting product:', error);
+        throw error;
+      }
+
+      console.log('Product deleted successfully');
+      toast.success('Xóa sản phẩm thành công');
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      toast.error(`Lỗi khi xóa sản phẩm: ${error.message}`);
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(editingProduct?.image_path || '');
+  };
+
+  if (!user || !isAdmin()) {
+    return null;
+  }
 
   return (
-    <>
-      <Navbar navigate={navigate} />
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Quản lý sản phẩm</h1>
-            <p className="text-gray-600 mt-2">Quản lý danh mục sản phẩm của cửa hàng</p>
-          </div>
-          
-          <Button 
-            onClick={() => setShowAddProduct(true)}
-            className="bg-nature-600 hover:bg-nature-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Thêm sản phẩm
-          </Button>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Sản Phẩm</h1>
+          <p className="text-gray-600 mt-2">Thêm, sửa, xóa sản phẩm trong hệ thống</p>
         </div>
 
-        {/* Filters */}
+        {/* Header Actions */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <div className="flex flex-col md:flex-row gap-4 justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Tìm kiếm sản phẩm..."
                   value={searchTerm}
@@ -159,18 +348,10 @@ const ProductManagement = ({ navigate }: PageProps) => {
                   className="pl-10"
                 />
               </div>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="active">Hoạt động</SelectItem>
-                  <SelectItem value="inactive">Ngừng bán</SelectItem>
-                  <SelectItem value="draft">Bản nháp</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button onClick={handleAddProduct} className="bg-green-600 hover:bg-green-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm Sản Phẩm
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -178,300 +359,242 @@ const ProductManagement = ({ navigate }: PageProps) => {
         {/* Products Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Danh sách sản phẩm</CardTitle>
+            <CardTitle>Danh Sách Sản Phẩm ({filteredProducts.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hình ảnh</TableHead>
-                  <TableHead>Tên sản phẩm</TableHead>
-                  <TableHead>Danh mục</TableHead>
-                  <TableHead>Giá</TableHead>
-                  <TableHead>Tồn kho</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <AspectRatio ratio={1} className="w-12 h-12">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover rounded"
-                        />
-                      </AspectRatio>
-                    </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>
-                      {product.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                    </TableCell>
-                    <TableCell>
-                      <span className={product.stock === 0 ? 'text-red-600' : ''}>
-                        {product.stock}
-                      </span>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(product.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        <Select
-                          value={product.status}
-                          onValueChange={(value: ProductStatus) => handleStatusChange(product.id, value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Hoạt động</SelectItem>
-                            <SelectItem value="inactive">Ngừng bán</SelectItem>
-                            <SelectItem value="draft">Bản nháp</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Đang tải...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Hình ảnh</TableHead>
+                    <TableHead>Tên sản phẩm</TableHead>
+                    <TableHead>Danh mục</TableHead>
+                    <TableHead>Giá</TableHead>
+                    <TableHead>Tồn kho</TableHead>
+                    <TableHead>Thao tác</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product) => (
+                    <TableRow key={product.product_id}>
+                      <TableCell>
+                        <img 
+                          src={product.image_path || '/placeholder.svg'} 
+                          alt={product.name}
+                          className="w-16 h-16 object-cover rounded"
+                          onError={(e) => {
+                            console.log('Image load error for:', product.image_path);
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{getCategoryName(product.category)}</TableCell>
+                      <TableCell>{product.price.toLocaleString('vi-VN')}₫</TableCell>
+                      <TableCell>
+                        <span className={(product.stock_quantity || 0) > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {product.stock_quantity || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditProduct(product)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteProduct(product.product_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
-        {/* Add Product Dialog */}
-        <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-          <DialogContent className="max-w-2xl">
+        {/* Add/Edit Product Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Thêm sản phẩm mới</DialogTitle>
+              <DialogTitle>
+                {editingProduct ? 'Chỉnh Sửa Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
+              </DialogTitle>
             </DialogHeader>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Tên sản phẩm</Label>
+            <form onSubmit={handleSubmitProduct} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Tên sản phẩm *</Label>
                   <Input
                     id="name"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct(prev => ({...prev, name: e.target.value}))}
-                    placeholder="Nhập tên sản phẩm"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="category">Danh mục</Label>
-                  <Select value={newProduct.category} onValueChange={(value) => setNewProduct(prev => ({...prev, category: value}))}>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Danh mục *</Label>
+                  <Select 
+                    value={formData.category.toString()} 
+                    onValueChange={(value) => setFormData({...formData, category: parseInt(value)})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn danh mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Terrarium">Terrarium</SelectItem>
-                      <SelectItem value="Bonsai">Bonsai</SelectItem>
-                      <SelectItem value="Sen đá">Sen đá</SelectItem>
-                      <SelectItem value="Cây cảnh">Cây cảnh</SelectItem>
-                      <SelectItem value="Phụ kiện">Phụ kiện</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="price">Giá (VNĐ)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct(prev => ({...prev, price: e.target.value}))}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="stock">Số lượng tồn kho</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct(prev => ({...prev, stock: e.target.value}))}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="status">Trạng thái</Label>
-                  <Select 
-                    value={newProduct.status} 
-                    onValueChange={(value: ProductStatus) => setNewProduct(prev => ({...prev, status: value}))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Hoạt động</SelectItem>
-                      <SelectItem value="inactive">Ngừng bán</SelectItem>
-                      <SelectItem value="draft">Bản nháp</SelectItem>
+                      {Object.entries(CATEGORY_MAPPING).map(([id, name]) => (
+                        <SelectItem key={id} value={id}>
+                          {name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="description">Mô tả</Label>
-                  <Textarea
-                    id="description"
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct(prev => ({...prev, description: e.target.value}))}
-                    placeholder="Nhập mô tả sản phẩm"
-                    rows={4}
+              <div className="space-y-2">
+                <Label htmlFor="description">Mô tả</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Giá (VNĐ) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                    required
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="image">Hình ảnh</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">Kéo thả hoặc click để tải ảnh</p>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stock_quantity">Số lượng tồn kho *</Label>
+                  <Input
+                    id="stock_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.stock_quantity}
+                    onChange={(e) => setFormData({...formData, stock_quantity: Number(e.target.value)})}
+                    required
+                  />
                 </div>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-4 mt-6">
-              <Button variant="outline" onClick={() => setShowAddProduct(false)}>
-                Hủy
-              </Button>
-              <Button onClick={handleAddProduct} className="bg-nature-600 hover:bg-nature-700">
-                Thêm sản phẩm
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              
+              {/* Image Upload Section */}
+              <div className="space-y-3">
+                <Label>Hình ảnh sản phẩm</Label>
+                
+                {/* File Upload */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleFileSelect}
+                      className="flex-1"
+                    />
+                    {selectedFile && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeSelectedFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Chấp nhận: JPEG, PNG, WebP. Tối đa 5MB.
+                  </p>
+                </div>
 
-        {/* Edit Product Dialog */}
-        <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa sản phẩm</DialogTitle>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Tên sản phẩm</Label>
+                {/* URL Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="image_url">Hoặc nhập URL ảnh</Label>
                   <Input
-                    id="name"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct(prev => ({...prev, name: e.target.value}))}
-                    placeholder="Nhập tên sản phẩm"
+                    id="image_url"
+                    value={formData.image_path}
+                    onChange={(e) => {
+                      setFormData({...formData, image_path: e.target.value});
+                      if (e.target.value) {
+                        setPreviewUrl(e.target.value);
+                      }
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    disabled={!!selectedFile}
                   />
                 </div>
-                
-                <div>
-                  <Label htmlFor="category">Danh mục</Label>
-                  <Select value={newProduct.category} onValueChange={(value) => setNewProduct(prev => ({...prev, category: value}))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn danh mục" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Terrarium">Terrarium</SelectItem>
-                      <SelectItem value="Bonsai">Bonsai</SelectItem>
-                      <SelectItem value="Sen đá">Sen đá</SelectItem>
-                      <SelectItem value="Cây cảnh">Cây cảnh</SelectItem>
-                      <SelectItem value="Phụ kiện">Phụ kiện</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="price">Giá (VNĐ)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct(prev => ({...prev, price: e.target.value}))}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="stock">Số lượng tồn kho</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct(prev => ({...prev, stock: e.target.value}))}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="status">Trạng thái</Label>
-                  <Select 
-                    value={newProduct.status} 
-                    onValueChange={(value: ProductStatus) => setNewProduct(prev => ({...prev, status: value}))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Hoạt động</SelectItem>
-                      <SelectItem value="inactive">Ngừng bán</SelectItem>
-                      <SelectItem value="draft">Bản nháp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
+                {/* Image Preview */}
+                {previewUrl && (
+                  <div className="space-y-2">
+                    <Label>Xem trước</Label>
+                    <div className="border rounded-lg p-2 bg-gray-50">
+                      <img 
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded border mx-auto"
+                        onError={(e) => {
+                          console.log('Preview image error');
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="description">Mô tả</Label>
-                  <Textarea
-                    id="description"
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct(prev => ({...prev, description: e.target.value}))}
-                    placeholder="Nhập mô tả sản phẩm"
-                    rows={4}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="image">Hình ảnh</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">Kéo thả hoặc click để tải ảnh</p>
-                  </div>
-                </div>
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={uploading}
+                >
+                  {uploading ? 'Đang xử lý...' : editingProduct ? 'Cập nhật' : 'Thêm sản phẩm'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    resetForm();
+                  }}
+                  disabled={uploading}
+                >
+                  Hủy
+                </Button>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-4 mt-6">
-              <Button variant="outline" onClick={() => setShowEditProduct(false)}>
-                Hủy
-              </Button>
-              <Button onClick={handleUpdateProduct} className="bg-nature-600 hover:bg-nature-700">
-                Cập nhật
-              </Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
+      
       <Footer />
-    </>
+    </div>
   );
 };
 
