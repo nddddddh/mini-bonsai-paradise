@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,27 +13,27 @@ import Footer from "@/components/Footer";
 import { CartPageProps } from "@/types/navigation";
 
 const CartPage = ({ navigate }: CartPageProps) => {
-  const { cartItems, removeFromCart, updateCartItemQuantity, clearCart, getTotalPrice } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, totalAmount } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleQuantityChange = (productId: number, quantity: number) => {
+  const handleQuantityChange = (id: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeItem(id);
       toast({
         title: "Sản phẩm đã được xóa khỏi giỏ hàng.",
         description: "Số lượng sản phẩm đã được cập nhật.",
       });
     } else {
-      updateCartItemQuantity(productId, quantity);
+      updateQuantity(id, quantity);
     }
   };
 
-  const handleRemoveFromCart = (productId: number) => {
-    removeFromCart(productId);
+  const handleRemoveFromCart = (id: string) => {
+    removeItem(id);
     toast({
       title: "Sản phẩm đã được xóa khỏi giỏ hàng.",
       description: "Sản phẩm đã được loại bỏ khỏi giỏ hàng của bạn.",
@@ -47,7 +48,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
     });
   };
 
-  if (cartItems.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar navigate={navigate} />
@@ -79,11 +80,11 @@ const CartPage = ({ navigate }: CartPageProps) => {
             <CardTitle>Giỏ hàng của bạn</CardTitle>
           </CardHeader>
           <CardContent>
-            {cartItems.map((item) => (
-              <div key={item.product_id} className="mb-4">
+            {items.map((item) => (
+              <div key={item.id} className="mb-4">
                 <div className="flex items-center">
                   <img
-                    src={item.image_path || "/placeholder.svg"}
+                    src={item.image || "/placeholder.svg"}
                     alt={item.name}
                     className="w-24 h-24 object-cover rounded mr-4"
                   />
@@ -99,7 +100,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => handleQuantityChange(item.product_id, item.quantity - 1)}
+                      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -110,14 +111,14 @@ const CartPage = ({ navigate }: CartPageProps) => {
                       onChange={(e) => {
                         const newQuantity = parseInt(e.target.value);
                         if (!isNaN(newQuantity)) {
-                          handleQuantityChange(item.product_id, newQuantity);
+                          handleQuantityChange(item.id, newQuantity);
                         }
                       }}
                     />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
+                      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -125,7 +126,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleRemoveFromCart(item.product_id)}
+                    onClick={() => handleRemoveFromCart(item.id)}
                     className="text-red-600"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -143,7 +144,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
               </Button>
               <div>
                 <p className="text-lg font-semibold">
-                  Tổng cộng: {getTotalPrice().toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                  Tổng cộng: {totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                 </p>
                 <div className="flex justify-end space-x-2 mt-2">
                   <Button variant="outline" onClick={handleClearCart}>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,18 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Convert category URL param to category ID
+  const getCategoryIdFromSlug = (slug: string): number => {
+    const mapping: Record<string, number> = {
+      "cay-co-hoa": 1,    // Cây có hoa
+      "mini": 2,          // Mini
+      "phong-thuy": 3     // Phong thủy
+    };
+    return mapping[slug] || 2; // Default to Mini
+  };
+
+  const categoryId = category ? getCategoryIdFromSlug(category) : 2;
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProductsByCategory();
@@ -22,10 +35,11 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', category)
+        .eq('category', categoryId)
         .order('product_id', { ascending: false });
 
       if (error) {
@@ -78,13 +92,13 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
           <span className="mx-2">/</span>
           <button onClick={() => navigate('/collections')} className="hover:text-nature-600">Bộ sưu tập</button>
           <span className="mx-2">/</span>
-          <span className="font-medium text-gray-700">{getCategoryName(category || 2)}</span>
+          <span className="font-medium text-gray-700">{getCategoryName(categoryId)}</span>
         </div>
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{getCategoryName(category || 2)}</h1>
+          <h1 className="text-3xl font-bold mb-2">{getCategoryName(categoryId)}</h1>
           <p className="text-gray-600">
-            {products.length} sản phẩm thuộc bộ sưu tập {getCategoryName(category || 2).toLowerCase()}
+            {products.length} sản phẩm thuộc bộ sưu tập {getCategoryName(categoryId).toLowerCase()}
           </p>
         </div>
         

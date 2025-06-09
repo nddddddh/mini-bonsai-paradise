@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,11 @@ const AdminDashboard = ({ navigate }: AdminDashboardProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Check if user is admin
+  const isUserAdmin = user && user.role === 1;
+
   useEffect(() => {
-    if (!user?.isAdmin) {
+    if (!isUserAdmin) {
       toast({
         title: "Truy cập bị từ chối",
         description: "Bạn không có quyền truy cập trang này.",
@@ -39,14 +43,14 @@ const AdminDashboard = ({ navigate }: AdminDashboardProps) => {
       return;
     }
     fetchDashboardData();
-  }, [user, navigate, toast]);
+  }, [user, navigate, toast, isUserAdmin]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch total users
+      // Fetch total users from accounts table
       const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
+        .from('accounts')
         .select('*', { count: 'exact' });
 
       if (usersError) {
@@ -258,15 +262,15 @@ const AdminDashboard = ({ navigate }: AdminDashboardProps) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {recentOrders.map((order: any) => (
-                  <tr key={order.id}>
+                  <tr key={order.order_id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {order.id}
+                        {order.order_id}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {order.customer_name}
+                        {order.customer_name || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -276,25 +280,25 @@ const AdminDashboard = ({ navigate }: AdminDashboardProps) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        ${order.total_amount}
+                        {order.total_amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge
                         className={
-                          order.status === "Đã giao hàng"
+                          order.status === "completed"
                             ? "bg-green-100 text-green-800"
                             : "bg-yellow-100 text-yellow-800"
                         }
                       >
-                        {order.status}
+                        {order.status === "completed" ? "Hoàn thành" : "Đang xử lý"}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        onClick={() => navigate(`/admin/orders/${order.order_id}`)}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Xem
