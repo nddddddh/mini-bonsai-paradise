@@ -128,9 +128,9 @@ const App = () => {
       case 'products':
         return <Products />;
       case 'productDetail':
-        return <ProductDetail productId={currentRoute.params?.id} />;
+        return <ProductDetail />;
       case 'categoryProducts':
-        return <CategoryProducts category={currentRoute.params?.category} />;
+        return <CategoryProducts />;
       case 'cart':
         return <CartPage />;
       case 'checkout':
@@ -150,11 +150,11 @@ const App = () => {
       case 'careGuide':
         return <CareGuide />;
       case 'careGuideDetail':
-        return <CareGuideDetail slug={currentRoute.params?.slug} />;
+        return <CareGuideDetail />;
       case 'collections':
         return <Collections />;
       case 'collectionDetail':
-        return <CollectionDetail category={currentRoute.params?.category} />;
+        return <CollectionDetail />;
       case 'about':
         return <About />;
       case 'profile':
