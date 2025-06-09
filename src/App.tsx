@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -100,21 +99,19 @@ const App = () => {
   };
 
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                {renderCurrentPage()}
-              </TooltipProvider>
-            </CartProvider>
-          </WishlistProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <WishlistProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              {renderCurrentPage()}
+            </TooltipProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

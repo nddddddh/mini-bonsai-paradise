@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { PageProps } from '@/types/navigation';
 
-const Register = () => {
-  const navigate = useNavigate();
-  
+const Register = ({ navigate }: PageProps) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -125,7 +123,7 @@ const Register = () => {
         description: "Tài khoản đã được tạo thành công!",
       });
 
-      navigate('/login');
+      navigate('login');
     } catch (error) {
       console.error('Registration error:', error);
       toast({
@@ -271,9 +269,9 @@ const Register = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Đã có tài khoản?{' '}
-              <Link to="/login" className="text-nature-600 hover:underline font-medium">
+              <button onClick={() => navigate('login')} className="text-nature-600 hover:underline font-medium">
                 Đăng nhập ngay
-              </Link>
+              </button>
             </p>
           </div>
         </CardContent>

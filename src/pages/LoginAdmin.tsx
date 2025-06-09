@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +9,12 @@ import { toast } from "sonner";
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { PageProps } from '@/types/navigation';
 
-const LoginAdmin = () => {
+const LoginAdmin = ({ navigate }: PageProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { login, isAdmin } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,7 +29,7 @@ const LoginAdmin = () => {
         setTimeout(() => {
           if (isAdmin()) {
             toast.success("Đăng nhập admin thành công!");
-            navigate('/admin/dashboard');
+            navigate('admin-dashboard');
           } else {
             toast.error("Tài khoản không có quyền admin!");
           }
@@ -47,7 +46,7 @@ const LoginAdmin = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>

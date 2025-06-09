@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,19 +8,12 @@ import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Lock } from 'lucide-react';
+import { PageProps } from '@/types/navigation';
 
-const ResetPassword = () => {
+const ResetPassword = ({ navigate }: PageProps) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
-
-  if (!token) {
-    navigate('/forgot-password');
-    return null;
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,14 +34,14 @@ const ResetPassword = () => {
     // This is just a simulation
     setTimeout(() => {
       toast.success("Đặt lại mật khẩu thành công!");
-      navigate('/login');
+      navigate('login');
       setIsLoading(false);
     }, 1500);
   };
 
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>
