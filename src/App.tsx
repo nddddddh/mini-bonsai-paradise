@@ -7,6 +7,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CartProvider } from "@/hooks/use-cart";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WishlistProvider } from "@/hooks/useWishlist";
+import Header from "./components/Header";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -121,19 +124,57 @@ const App = () => {
   };
 
   const renderCurrentPage = () => {
+    const pageProps = { navigate };
+    
     switch (currentRoute.page) {
       case 'index':
-        return <Index navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Index navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'products':
-        return <Products navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Products navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'productDetail':
-        return <ProductDetail navigate={navigate} productId={currentRoute.params?.id} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <ProductDetail navigate={navigate} productId={currentRoute.params?.id} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'categoryProducts':
-        return <CategoryProducts navigate={navigate} category={currentRoute.params?.category} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <CategoryProducts navigate={navigate} category={currentRoute.params?.category} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'cart':
-        return <CartPage navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <CartPage navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'checkout':
-        return <Checkout navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Checkout navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'login':
         return <Login navigate={navigate} />;
       case 'loginAdmin':
@@ -147,25 +188,82 @@ const App = () => {
       case 'resetPassword':
         return <ResetPassword navigate={navigate} />;
       case 'careGuide':
-        return <CareGuide navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <CareGuide navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'careGuideDetail':
-        return <CareGuideDetail navigate={navigate} slug={currentRoute.params?.slug} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <CareGuideDetail navigate={navigate} slug={currentRoute.params?.slug} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'collections':
-        return <Collections navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Collections navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'collectionDetail':
-        return <CollectionDetail navigate={navigate} category={currentRoute.params?.category} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <CollectionDetail navigate={navigate} category={currentRoute.params?.category} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'about':
-        return <About navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <About navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'profile':
-        return <Profile navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Profile navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'wishlist':
-        return <Wishlist navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Navbar navigate={navigate} />
+            <Wishlist navigate={navigate} />
+            <Footer navigate={navigate} />
+          </div>
+        );
       case 'adminDashboard':
-        return <AdminDashboard navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Header navigate={navigate} />
+            <AdminDashboard navigate={navigate} />
+          </div>
+        );
       case 'orderManagement':
-        return <OrderManagement navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Header navigate={navigate} />
+            <OrderManagement navigate={navigate} />
+          </div>
+        );
       case 'productManagement':
-        return <ProductManagement navigate={navigate} />;
+        return (
+          <div className="min-h-screen flex flex-col">
+            <Header navigate={navigate} />
+            <ProductManagement navigate={navigate} />
+          </div>
+        );
       default:
         return <NotFound navigate={navigate} />;
     }
