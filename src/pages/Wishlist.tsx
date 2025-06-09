@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import PlantCard from "@/components/PlantCard";
 import { WishlistProps } from "@/types/navigation";
 
 const Wishlist = ({ navigate }: WishlistProps) => {
-  const { wishlist, removeFromWishlist } = useWishlist();
+  const { wishlistItems, removeFromWishlist } = useWishlist();
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -20,15 +21,26 @@ const Wishlist = ({ navigate }: WishlistProps) => {
   }, []);
 
   const handleAddToBag = (plant: any) => {
-    addItem(plant);
+    // Convert product to Plant format for cart compatibility
+    const cartItem = {
+      id: plant.product?.product_id || plant.id,
+      name: plant.product?.name || plant.name,
+      price: plant.product?.price || plant.price,
+      salePrice: plant.product?.sale_price || plant.salePrice,
+      image: plant.product?.image_url || plant.image,
+      category: plant.product?.category || plant.category,
+      stock: plant.product?.stock || plant.stock || 10
+    };
+    
+    addItem(cartItem);
     toast({
       title: "Đã thêm vào giỏ hàng",
-      description: `${plant.name} đã được thêm vào giỏ hàng của bạn.`,
+      description: `${cartItem.name} đã được thêm vào giỏ hàng của bạn.`,
     });
   };
 
-  const handleRemoveFromWishlist = (plantId: string) => {
-    removeFromWishlist(plantId);
+  const handleRemoveFromWishlist = (productId: number) => {
+    removeFromWishlist(productId);
     toast({
       title: "Đã xóa khỏi yêu thích",
       description: "Sản phẩm đã được xóa khỏi danh sách yêu thích của bạn.",
@@ -49,7 +61,7 @@ const Wishlist = ({ navigate }: WishlistProps) => {
           </p>
         </div>
 
-        {wishlist.length === 0 ? (
+        {wishlistItems.length === 0 ? (
           <Card className="text-center py-16">
             <CardContent>
               <Heart className="w-10 h-10 mx-auto text-gray-400 mb-4" />
@@ -67,14 +79,14 @@ const Wishlist = ({ navigate }: WishlistProps) => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {wishlist.map((plant) => (
-              <Card key={plant.id}>
-                <PlantCard plant={plant} />
+            {wishlistItems.map((item) => (
+              <Card key={item.wishlist_id}>
+                <PlantCard plant={item.product} />
                 <CardContent className="flex items-center justify-between">
                   <Button
                     size="sm"
                     className="bg-nature-600 hover:bg-nature-700 text-white"
-                    onClick={() => handleAddToBag(plant)}
+                    onClick={() => handleAddToBag(item)}
                   >
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     Thêm vào giỏ
@@ -83,7 +95,7 @@ const Wishlist = ({ navigate }: WishlistProps) => {
                     size="icon"
                     variant="ghost"
                     className="hover:text-red-500"
-                    onClick={() => handleRemoveFromWishlist(plant.id)}
+                    onClick={() => handleRemoveFromWishlist(item.product_id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
