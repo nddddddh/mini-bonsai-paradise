@@ -20,7 +20,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleQuantityChange = (id: string, quantity: number) => {
+  const handleQuantityChange = (id: number, quantity: number) => {
     if (quantity <= 0) {
       removeItem(id);
       toast({
@@ -32,7 +32,7 @@ const CartPage = ({ navigate }: CartPageProps) => {
     }
   };
 
-  const handleRemoveFromCart = (id: string) => {
+  const handleRemoveFromCart = (id: number) => {
     removeItem(id);
     toast({
       title: "Sản phẩm đã được xóa khỏi giỏ hàng.",

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
 
@@ -24,6 +25,7 @@ interface CartContextType {
   clearCart: () => void;
   cartTotal: number;
   itemCount: number;
+  getCartTotal: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -103,6 +105,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     total + (item.salePrice || item.price) * item.quantity, 0
   );
   
+  const getCartTotal = () => {
+    return items.reduce((total, item) => 
+      total + (item.salePrice || item.price) * item.quantity, 0
+    );
+  };
+  
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
   
   return (
@@ -114,6 +122,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       clearCart,
       cartTotal,
       itemCount,
+      getCartTotal,
     }}>
       {children}
     </CartContext.Provider>
