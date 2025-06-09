@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -106,7 +105,7 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
             <p className="text-gray-500">Đang tải sản phẩm...</p>
           </div>
         </div>
-        <Footer />
+        <Footer navigate={navigate} />
       </div>
     );
   }
@@ -166,7 +165,7 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
         )}
       </div>
       
-      <Footer />
+      <Footer navigate={navigate} />
     </div>
   );
 };

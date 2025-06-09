@@ -13,7 +13,7 @@ const CartPage = ({ navigate }: PageProps) => {
           <Cart />
         </div>
       </div>
-      <Footer />
+      <Footer navigate={navigate} />
     </>
   );
 };
