@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ const Login = ({ navigate }: PageProps) => {
       
       if (success) {
         toast.success("Đăng nhập thành công!");
-        navigate('/');
+        navigate('home');
       } else {
         toast.error("Email hoặc mật khẩu không đúng!");
       }
@@ -69,9 +70,13 @@ const Login = ({ navigate }: PageProps) => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Mật khẩu</Label>
-                    <Link to="/forgot-password" className="text-sm font-medium text-nature-600 hover:text-nature-700">
+                    <button 
+                      type="button"
+                      onClick={() => navigate('forgot-password')}
+                      className="text-sm font-medium text-nature-600 hover:text-nature-700"
+                    >
                       Quên mật khẩu?
-                    </Link>
+                    </button>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -98,9 +103,12 @@ const Login = ({ navigate }: PageProps) => {
             <CardFooter className="flex flex-col items-center">
               <div className="text-sm text-gray-600">
                 Chưa có tài khoản?{" "}
-                <Link to="/register" className="font-semibold text-nature-600 hover:text-nature-700">
+                <button 
+                  onClick={() => navigate('register')}
+                  className="font-semibold text-nature-600 hover:text-nature-700"
+                >
                   Đăng ký
-                </Link>
+                </button>
               </div>
             </CardFooter>
           </Card>

@@ -20,7 +20,7 @@ interface FormData {
 }
 
 const Checkout = ({ navigate }: PageProps) => {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -30,6 +30,9 @@ const Checkout = ({ navigate }: PageProps) => {
   });
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Calculate total price from cart items
+  const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
