@@ -1,368 +1,303 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Camera, Package, Clock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import { useAuth } from '@/hooks/useAuth';
-import { Order, OrderDetail, Product } from '@/types/supabase';
+import { User, Mail, Phone, MapPin, Calendar, Package, Heart, Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { toast } from 'sonner';
+import { PageProps } from '@/types/navigation';
 
-interface OrderWithDetails extends Order {
-  order_details: (OrderDetail & { product: Product })[];
-}
+// Mock order data
+const orders = [
+  {
+    id: 'ORD-1234',
+    date: '2023-05-15',
+    status: 'delivered',
+    total: 1250000,
+    items: 3
+  },
+  {
+    id: 'ORD-1235',
+    date: '2023-06-02',
+    status: 'processing',
+    total: 850000,
+    items: 2
+  },
+  {
+    id: 'ORD-1236',
+    date: '2023-06-10',
+    status: 'shipped',
+    total: 450000,
+    items: 1
+  }
+];
 
-const Profile = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [userOrders, setUserOrders] = useState<OrderWithDetails[]>([]);
-  const [profileData, setProfileData] = useState({
-    full_name: user?.full_name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
-    avatar_url: user?.avatar_url || ''
+const Profile = ({ navigate }: PageProps) => {
+  const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: user?.full_name || 'Nguyễn Văn A',
+    email: user?.email || 'nguyenvana@example.com',
+    phone: '0912345678',
+    address: 'Số 123, Đường ABC, Quận 1, TP. Hồ Chí Minh',
+    birthday: '1990-01-01'
   });
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    fetchUserOrders();
-  }, [user, navigate]);
-
-  const fetchUserOrders = async () => {
-    if (!user) return;
-    
-    try {
-      // Fetch user orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('account_id', user.account_id)
-        .order('order_date', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      // Fetch order details with products for each order
-      const ordersWithDetails: OrderWithDetails[] = [];
-      
-      for (const order of ordersData || []) {
-        const { data: detailsData, error: detailsError } = await supabase
-          .from('order_details')
-          .select(`
-            *,
-            products(*)
-          `)
-          .eq('order_id', order.order_id);
-
-        if (detailsError) throw detailsError;
-
-        // Transform the data to match our interface
-        const transformedDetails = detailsData?.map(detail => ({
-          ...detail,
-          product: detail.products
-        })) || [];
-
-        // Cast the order data properly
-        const transformedOrder: OrderWithDetails = {
-          order_id: order.order_id,
-          account_id: order.account_id,
-          order_date: order.order_date,
-          total_amount: order.total_amount,
-          status: order.status, // Keep as string
-          order_details: transformedDetails
-        };
-
-        ordersWithDetails.push(transformedOrder);
-      }
-
-      setUserOrders(ordersWithDetails);
-    } catch (error) {
-      console.error('Error fetching user orders:', error);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('accounts')
-        .update({
-          full_name: profileData.full_name,
-          phone: profileData.phone,
-          address: profileData.address,
-          avatar_url: profileData.avatar_url,
-          updated_at: new Date().toISOString()
-        })
-        .eq('account_id', user.account_id);
-
-      if (error) throw error;
-
-      // Update local storage
-      const updatedUser = { ...user, ...profileData };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      toast.success('Cập nhật thông tin thành công!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Lỗi khi cập nhật thông tin!');
-    } finally {
-      setLoading(false);
-    }
+  const handleSaveProfile = () => {
+    // In a real app, this would save to a backend
+    setIsEditing(false);
+    toast.success("Cập nhật thông tin thành công!");
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Chờ xử lý':
-        return <Badge variant="secondary">Chờ xử lý</Badge>;
-      case 'Đã giao':
-        return <Badge className="bg-green-100 text-green-800">Đã giao</Badge>;
-      case 'Đã hủy':
-        return <Badge variant="destructive">Đã hủy</Badge>;
+      case 'delivered':
+        return <Badge className="bg-green-500">Đã giao hàng</Badge>;
+      case 'processing':
+        return <Badge className="bg-blue-500">Đang xử lý</Badge>;
+      case 'shipped':
+        return <Badge className="bg-yellow-500">Đang giao hàng</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge>Không xác định</Badge>;
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Thông Tin Cá Nhân</h1>
-          <p className="text-gray-600 mt-2">Quản lý thông tin tài khoản và đơn hàng của bạn</p>
-        </div>
-
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile">Thông Tin Cá Nhân</TabsTrigger>
-            <TabsTrigger value="orders">Lịch Sử Đơn Hàng</TabsTrigger>
+    <>
+      <Navbar navigate={navigate} />
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold mb-6">Tài khoản của tôi</h1>
+        
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="profile">Thông tin cá nhân</TabsTrigger>
+            <TabsTrigger value="orders">Đơn hàng của tôi</TabsTrigger>
+            <TabsTrigger value="security">Bảo mật</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="profile" className="space-y-6">
+          
+          <TabsContent value="profile">
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="md:col-span-1">
+                <CardHeader>
+                  <CardTitle>Hồ sơ</CardTitle>
+                  <CardDescription>Thông tin cá nhân của bạn</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center">
+                  <Avatar className="w-24 h-24 mb-4">
+                    <AvatarImage src={user?.avatar || "https://github.com/shadcn.png"} />
+                    <AvatarFallback>{user?.full_name?.charAt(0) || 'N'}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-medium">{formData.fullName}</h3>
+                  <p className="text-sm text-gray-500">{formData.email}</p>
+                  <p className="text-sm text-gray-500 mt-1">{formData.phone}</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4 w-full"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
+                    {isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa thông tin'}
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Thông tin chi tiết</CardTitle>
+                  <CardDescription>Quản lý thông tin cá nhân của bạn</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Họ và tên</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="fullName"
+                            name="fullName"
+                            placeholder="Họ và tên"
+                            className="pl-10"
+                            value={formData.fullName}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="Email"
+                            className="pl-10"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Số điện thoại</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            placeholder="Số điện thoại"
+                            className="pl-10"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="birthday">Ngày sinh</Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            id="birthday"
+                            name="birthday"
+                            type="date"
+                            className="pl-10"
+                            value={formData.birthday}
+                            onChange={handleInputChange}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Địa chỉ</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <Input
+                          id="address"
+                          name="address"
+                          placeholder="Địa chỉ"
+                          className="pl-10"
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+                    
+                    {isEditing && (
+                      <div className="flex justify-end">
+                        <Button 
+                          type="button" 
+                          className="bg-nature-600 hover:bg-nature-700"
+                          onClick={handleSaveProfile}
+                        >
+                          Lưu thay đổi
+                        </Button>
+                      </div>
+                    )}
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="orders">
             <Card>
               <CardHeader>
-                <CardTitle>Thông Tin Tài Khoản</CardTitle>
+                <CardTitle>Đơn hàng của tôi</CardTitle>
+                <CardDescription>Lịch sử đơn hàng và trạng thái</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleUpdateProfile} className="space-y-6">
-                  {/* Avatar Section */}
-                  <div className="flex items-center space-x-6">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={profileData.avatar_url} alt={profileData.full_name} />
-                      <AvatarFallback className="text-2xl">
-                        {profileData.full_name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="text-lg font-semibold">{profileData.full_name}</h3>
-                      <p className="text-gray-600">{user.role === 0 ? 'Quản trị viên' : 'Khách hàng'}</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Thay đổi ảnh
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Form Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Họ và tên</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          id="full_name"
-                          value={profileData.full_name}
-                          onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
-                          className="pl-10"
-                          required
-                        />
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex flex-wrap justify-between items-center mb-2">
+                        <div>
+                          <h3 className="font-medium">{order.id}</h3>
+                          <p className="text-sm text-gray-500">Ngày đặt: {order.date}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(order.status)}
+                        </div>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex flex-wrap justify-between items-center">
+                        <div>
+                          <p className="text-sm">Số lượng: {order.items} sản phẩm</p>
+                          <p className="font-medium">Tổng tiền: {formatCurrency(order.total)}</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => toast.info("Chức năng đang phát triển")}>
+                          <Package className="w-4 h-4 mr-2" />
+                          Xem chi tiết
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          id="email"
-                          type="email"
-                          value={profileData.email}
-                          className="pl-10"
-                          disabled
-                        />
-                      </div>
-                      <p className="text-sm text-gray-500">Email không thể thay đổi</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Số điện thoại</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          id="phone"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                          className="pl-10"
-                          placeholder="Nhập số điện thoại"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="avatar_url">URL Avatar</Label>
-                      <Input
-                        id="avatar_url"
-                        value={profileData.avatar_url}
-                        onChange={(e) => setProfileData({...profileData, avatar_url: e.target.value})}
-                        placeholder="Nhập URL ảnh đại diện"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Địa chỉ</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
-                      <Textarea
-                        id="address"
-                        value={profileData.address}
-                        onChange={(e) => setProfileData({...profileData, address: e.target.value})}
-                        className="pl-10"
-                        placeholder="Nhập địa chỉ đầy đủ"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Button type="submit" disabled={loading}>
-                      {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={logout}>
-                      Đăng xuất
-                    </Button>
-                  </div>
-                </form>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="orders" className="space-y-6">
+          
+          <TabsContent value="security">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Package className="w-5 h-5 mr-2" />
-                  Lịch Sử Đơn Hàng ({userOrders.length})
-                </CardTitle>
+                <CardTitle>Bảo mật tài khoản</CardTitle>
+                <CardDescription>Quản lý mật khẩu và bảo mật</CardDescription>
               </CardHeader>
               <CardContent>
-                {userOrders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500">Bạn chưa có đơn hàng nào</p>
-                    <Button className="mt-4" onClick={() => navigate('/products')}>
-                      Mua sắm ngay
-                    </Button>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+                    <Input id="current-password" type="password" placeholder="••••••••" />
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {userOrders.map((order) => (
-                      <Card key={order.order_id} className="border-l-4 border-l-nature-500">
-                        <CardContent className="pt-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="font-semibold">Đơn hàng #{order.order_id}</h3>
-                              <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                                <span className="flex items-center">
-                                  <Clock className="w-4 h-4 mr-1" />
-                                  {new Date(order.order_date).toLocaleDateString('vi-VN')}
-                                </span>
-                                <span>{order.order_details.length} sản phẩm</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              {getStatusBadge(order.status)}
-                              <p className="text-lg font-semibold mt-1">
-                                {order.total_amount.toLocaleString('vi-VN')}₫
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            {order.order_details.map((detail) => (
-                              <div key={detail.order_detail_id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <img 
-                                  src={detail.product.image_path || '/placeholder.svg'} 
-                                  alt={detail.product.name}
-                                  className="w-16 h-16 object-cover rounded"
-                                />
-                                <div className="flex-1">
-                                  <h4 className="font-medium">{detail.product.name}</h4>
-                                  <p className="text-sm text-gray-600">{detail.product.category}</p>
-                                  <p className="text-sm">
-                                    Số lượng: {detail.quantity} • 
-                                    Giá: {detail.price.toLocaleString('vi-VN')}₫
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-semibold">
-                                    {(detail.quantity * detail.price).toLocaleString('vi-VN')}₫
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                            <div className="text-sm text-gray-600">
-                              Đặt hàng lúc: {new Date(order.order_date).toLocaleString('vi-VN')}
-                            </div>
-                            <div className="flex space-x-2">
-                              {order.status === 'Đã giao' && (
-                                <Button variant="outline" size="sm">
-                                  Mua lại
-                                </Button>
-                              )}
-                              {order.status === 'Chờ xử lý' && (
-                                <Button variant="outline" size="sm">
-                                  Hủy đơn
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Mật khẩu mới</Label>
+                    <Input id="new-password" type="password" placeholder="••••••••" />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
+                    <Input id="confirm-password" type="password" placeholder="••••••••" />
+                  </div>
+                  <Button 
+                    className="bg-nature-600 hover:bg-nature-700"
+                    onClick={() => toast.info("Chức năng đang phát triển")}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Cập nhật mật khẩu
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-      
       <Footer />
-    </div>
+    </>
   );
 };
 

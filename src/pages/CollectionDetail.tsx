@@ -1,19 +1,16 @@
-
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { ArrowLeft, Search, Filter, Grid, List } from 'lucide-react';
+import ProductCard from '@/components/ProductCard';
+import { plants } from '@/data/plants';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Filter, SlidersHorizontal } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { Product } from '@/types/supabase';
-import { getCategoryName } from '@/types/supabase';
+import { PageProps } from '@/types/navigation';
 
 // Collection info mapping
 const getCollectionInfo = (categorySlug: string) => {
@@ -53,10 +50,9 @@ const filterOptions = {
   ]
 };
 
-const CollectionDetail = () => {
-  const { category } = useParams<{ category: string }>();
+const CollectionDetail = ({ navigate, category }: PageProps) => {
   const [collection, setCollection] = useState<any>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, number[]>>({
     category: []
@@ -200,7 +196,7 @@ const CollectionDetail = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto py-16 px-4 min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500">Đang tải bộ sưu tập...</p>
@@ -214,7 +210,7 @@ const CollectionDetail = () => {
   if (!collection) {
     return (
       <>
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto py-16 px-4 min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Bộ sưu tập không tồn tại</h1>
@@ -234,7 +230,7 @@ const CollectionDetail = () => {
   
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="bg-white">
         {/* Hero */}
         <div className="relative">

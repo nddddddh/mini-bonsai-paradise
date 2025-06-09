@@ -1,113 +1,78 @@
-
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { PageProps } from '@/types/navigation';
 
-const ForgotPassword = () => {
+const ForgotPassword = ({ navigate }: PageProps) => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email) {
+      toast.error("Vui lòng nhập email!");
+      return;
+    }
+    
     setIsLoading(true);
     
-    // In a real app, this would trigger a password reset process
+    // In a real app, this would send a reset password link to the email
     // This is just a simulation
     setTimeout(() => {
-      toast.success("Link đặt lại mật khẩu đã được gửi đến email của bạn!");
-      setIsSubmitted(true);
+      toast.success("Một liên kết đặt lại mật khẩu đã được gửi đến email của bạn!");
+      navigate('login');
       setIsLoading(false);
     }, 1500);
   };
 
   return (
     <>
-      <Navbar />
+      <Navbar navigate={navigate} />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>
             <CardHeader className="space-y-1">
-              {!isSubmitted && (
-                <>
-                  <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu</CardTitle>
-                  <CardDescription className="text-center">
-                    Nhập email của bạn để nhận link đặt lại mật khẩu
-                  </CardDescription>
-                </>
-              )}
-              {isSubmitted && (
-                <>
-                  <div className="mx-auto bg-green-50 p-3 rounded-full">
-                    <Mail className="h-8 w-8 text-green-600" />
-                  </div>
-                  <CardTitle className="text-2xl font-bold text-center mt-4">Kiểm tra email của bạn</CardTitle>
-                  <CardDescription className="text-center">
-                    Chúng tôi đã gửi một link đặt lại mật khẩu đến {email}
-                  </CardDescription>
-                </>
-              )}
+              <div className="flex items-center justify-center mb-4">
+                <Mail className="w-12 h-12 text-nature-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu</CardTitle>
+              <CardDescription className="text-center">
+                Nhập email của bạn để nhận liên kết đặt lại mật khẩu
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {!isSubmitted ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        className="pl-10"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="youremail@example.com"
+                      className="pl-10"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-nature-600 hover:bg-nature-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Đang gửi..." : "Gửi link đặt lại mật khẩu"}
-                  </Button>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600 text-center">
-                    Vui lòng kiểm tra hộp thư đến của bạn và nhấp vào link trong email để đặt lại mật khẩu.
-                  </p>
-                  <p className="text-sm text-gray-600 text-center">
-                    Không nhận được email? Kiểm tra thư mục spam hoặc thử lại.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setIsSubmitted(false)}
-                  >
-                    Thử lại với email khác
-                  </Button>
                 </div>
-              )}
+                <Button
+                  type="submit"
+                  className="w-full bg-nature-600 hover:bg-nature-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Đang xử lý..." : "Gửi liên kết đặt lại"}
+                </Button>
+              </form>
             </CardContent>
-            <CardFooter className="flex flex-col items-center">
-              <Link 
-                to="/login"
-                className="flex items-center text-sm text-nature-600 hover:text-nature-700"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Quay lại trang đăng nhập
-              </Link>
-            </CardFooter>
           </Card>
         </div>
       </div>

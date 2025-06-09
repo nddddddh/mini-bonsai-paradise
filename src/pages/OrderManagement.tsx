@@ -1,442 +1,284 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Eye, Search, Filter, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Order, OrderDetail, Product, Account } from '@/types/supabase';
+import { useState } from 'react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { Search, Filter, Eye, Edit, Trash2, Package, Truck, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { toast } from 'sonner';
+import { PageProps } from '@/types/navigation';
 
-interface OrderWithDetails extends Order {
-  account: Account;
-  order_details: (OrderDetail & { product: Product })[];
+interface Order {
+  id: string;
+  customer: string;
+  date: string;
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  trackingNumber?: string;
 }
 
-const OrderManagement = () => {
-  const { user, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<OrderWithDetails[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+const mockOrders: Order[] = [
+  {
+    id: "1",
+    customer: "Nguyễn Văn A",
+    date: "2024-07-15",
+    total: 250000,
+    status: "delivered",
+    trackingNumber: "GHN123456789",
+  },
+  {
+    id: "2",
+    customer: "Trần Thị B",
+    date: "2024-07-10",
+    total: 180000,
+    status: "shipped",
+    trackingNumber: "VTP987654321",
+  },
+  {
+    id: "3",
+    customer: "Lê Văn C",
+    date: "2024-07-05",
+    total: 320000,
+    status: "processing",
+  },
+  {
+    id: "4",
+    customer: "Phạm Thị D",
+    date: "2024-06-28",
+    total: 120000,
+    status: "pending",
+  },
+  {
+    id: "5",
+    customer: "Hoàng Văn E",
+    date: "2024-06-20",
+    total: 450000,
+    status: "cancelled",
+  },
+];
 
-  useEffect(() => {
-    if (!user || !isAdmin()) {
-      navigate('/login');
-      return;
+const OrderManagement = ({ navigate }: PageProps) => {
+  const [orders, setOrders] = useState(mockOrders);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const filteredOrders = orders.filter(order => {
+    const searchRegex = new RegExp(searchQuery, 'i');
+    return searchRegex.test(order.customer) && (filterStatus === '' || order.status === filterStatus);
+  });
+
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    if (sortColumn) {
+      const aValue = a[sortColumn as keyof Order];
+      const bValue = b[sortColumn as keyof Order];
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      } else {
+        return 0;
+      }
     }
-    fetchOrders();
-  }, [user, navigate]);
+    return 0;
+  });
 
-  useEffect(() => {
-    filterOrders();
-  }, [orders, searchTerm, statusFilter]);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching orders...');
-      
-      // Fetch orders with account details
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          accounts(*)
-        `)
-        .order('order_date', { ascending: false });
-
-      if (ordersError) {
-        console.error('Orders error:', ordersError);
-        throw ordersError;
-      }
-
-      console.log('Orders data:', ordersData);
-
-      // Fetch order details with products for each order
-      const ordersWithDetails: OrderWithDetails[] = [];
-      
-      for (const order of ordersData || []) {
-        const { data: detailsData, error: detailsError } = await supabase
-          .from('order_details')
-          .select(`
-            *,
-            products(*)
-          `)
-          .eq('order_id', order.order_id);
-
-        if (detailsError) {
-          console.error('Order details error:', detailsError);
-          throw detailsError;
-        }
-
-        console.log(`Order ${order.order_id} details:`, detailsData);
-
-        // Transform the data to match our interface
-        const transformedDetails = detailsData?.map(detail => ({
-          ...detail,
-          product: detail.products
-        })) || [];
-
-        // Cast the order data to our interface
-        const transformedOrder: OrderWithDetails = {
-          order_id: order.order_id,
-          account_id: order.account_id,
-          order_date: order.order_date,
-          total_amount: order.total_amount,
-          status: order.status,
-          account: order.accounts,
-          order_details: transformedDetails
-        };
-
-        ordersWithDetails.push(transformedOrder);
-      }
-
-      console.log('Final orders with details:', ordersWithDetails);
-      setOrders(ordersWithDetails);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error('Lỗi khi tải danh sách đơn hàng');
-    } finally {
-      setLoading(false);
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
 
-  const filterOrders = () => {
-    let filtered = orders;
-
-    if (searchTerm) {
-      filtered = filtered.filter(order => 
-        order.order_id.toString().includes(searchTerm) ||
-        order.account.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.account.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
-    }
-
-    setFilteredOrders(filtered);
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
   };
 
-  const updateOrderStatus = async (orderId: number, newStatus: string) => {
-    try {
-      console.log('Updating order status:', orderId, newStatus);
-      
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('order_id', orderId);
+  const handleEditOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsEditing(true);
+  };
 
-      if (error) {
-        console.error('Update order status error:', error);
-        throw error;
-      }
-
-      // Update local state
-      setOrders(orders.map(order => 
-        order.order_id === orderId 
-          ? { ...order, status: newStatus }
-          : order
-      ));
-
-      // Update selected order if it's the one being updated
-      if (selectedOrder && selectedOrder.order_id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: newStatus });
-      }
-
-      toast.success('Cập nhật trạng thái đơn hàng thành công');
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error('Lỗi khi cập nhật trạng thái đơn hàng');
+  const handleDeleteOrder = (order: Order) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng của ${order.customer}?`)) {
+      setOrders(orders.filter(o => o.id !== order.id));
+      toast.success(`Đã xóa đơn hàng của ${order.customer}.`);
     }
   };
 
-  const deleteOrder = async (orderId: number) => {
-    try {
-      console.log('Deleting order:', orderId);
-      
-      // First delete order details
-      const { error: detailsError } = await supabase
-        .from('order_details')
-        .delete()
-        .eq('order_id', orderId);
-
-      if (detailsError) {
-        console.error('Delete order details error:', detailsError);
-        throw detailsError;
-      }
-
-      // Then delete the order
-      const { error: orderError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('order_id', orderId);
-
-      if (orderError) {
-        console.error('Delete order error:', orderError);
-        throw orderError;
-      }
-
-      // Update local state
-      setOrders(orders.filter(order => order.order_id !== orderId));
-      
-      toast.success('Xóa đơn hàng thành công');
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast.error('Lỗi khi xóa đơn hàng');
-    }
+  const handleUpdateStatus = (orderId: string, newStatus: Order['status']) => {
+    setOrders(orders.map(order =>
+      order.id === orderId ? { ...order, status: newStatus } : order
+    ));
+    toast.success(`Đã cập nhật trạng thái đơn hàng thành ${newStatus}.`);
   };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Chờ xử lý':
-        return <Badge variant="secondary">Chờ xử lý</Badge>;
-      case 'Đã giao':
-        return <Badge className="bg-green-100 text-green-800">Đã giao</Badge>;
-      case 'Đã hủy':
-        return <Badge variant="destructive">Đã hủy</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  if (!user || !isAdmin()) {
-    return null;
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Hàng</h1>
-          <p className="text-gray-600 mt-2">Theo dõi và quản lý tất cả đơn hàng</p>
-        </div>
-
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Tìm kiếm theo mã đơn, tên khách hàng hoặc email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Lọc theo trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                  <SelectItem value="Đã giao">Đã giao</SelectItem>
-                  <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Orders Table */}
+    <>
+      <Navbar navigate={navigate} />
+      <div className="container mx-auto py-16 px-4">
         <Card>
           <CardHeader>
-            <CardTitle>Danh Sách Đơn Hàng ({filteredOrders.length})</CardTitle>
+            <CardTitle className="text-2xl font-bold">Quản lý đơn hàng</CardTitle>
+            <CardDescription>
+              Theo dõi, chỉnh sửa và quản lý tất cả các đơn hàng.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Đang tải...</p>
+          <CardContent className="space-y-4">
+            <Tabs defaultValue="all" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="all">Tất cả</TabsTrigger>
+                <TabsTrigger value="pending">Đang chờ xử lý</TabsTrigger>
+                <TabsTrigger value="processing">Đang xử lý</TabsTrigger>
+                <TabsTrigger value="shipped">Đang giao hàng</TabsTrigger>
+                <TabsTrigger value="delivered">Đã giao hàng</TabsTrigger>
+                <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
+              </TabsList>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="search"
+                    placeholder="Tìm kiếm khách hàng..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Lọc theo trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tất cả trạng thái</SelectItem>
+                      <SelectItem value="pending">Đang chờ xử lý</SelectItem>
+                      <SelectItem value="processing">Đang xử lý</SelectItem>
+                      <SelectItem value="shipped">Đang giao hàng</SelectItem>
+                      <SelectItem value="delivered">Đã giao hàng</SelectItem>
+                      <SelectItem value="cancelled">Đã hủy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Lọc
+                </Button>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã Đơn</TableHead>
-                    <TableHead>Khách Hàng</TableHead>
-                    <TableHead>Ngày Đặt</TableHead>
-                    <TableHead>Tổng Tiền</TableHead>
-                    <TableHead>Trạng Thái</TableHead>
-                    <TableHead>Thao Tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.order_id}>
-                      <TableCell className="font-medium">#{order.order_id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{order.account.full_name}</div>
-                          <div className="text-sm text-gray-500">{order.account.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(order.order_date).toLocaleDateString('vi-VN')}
-                      </TableCell>
-                      <TableCell>{order.total_amount.toLocaleString('vi-VN')}₫</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setSelectedOrder(order)}
+              <TabsContent value="all" className="outline-none">
+                <div className="relative overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead onClick={() => handleSort('id')} className="cursor-pointer">
+                          Mã đơn hàng
+                        </TableHead>
+                        <TableHead onClick={() => handleSort('customer')} className="cursor-pointer">
+                          Khách hàng
+                        </TableHead>
+                        <TableHead onClick={() => handleSort('date')} className="cursor-pointer">
+                          Ngày đặt
+                        </TableHead>
+                        <TableHead onClick={() => handleSort('total')} className="cursor-pointer">
+                          Tổng tiền
+                        </TableHead>
+                        <TableHead onClick={() => handleSort('status')} className="cursor-pointer">
+                          Trạng thái
+                        </TableHead>
+                        <TableHead className="text-right">Hành động</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell>{order.id}</TableCell>
+                          <TableCell>{order.customer}</TableCell>
+                          <TableCell>{order.date}</TableCell>
+                          <TableCell>{order.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</TableCell>
+                          <TableCell>
+                            {order.status === 'pending' && (
+                              <Badge variant="secondary">Đang chờ xử lý</Badge>
+                            )}
+                            {order.status === 'processing' && (
+                              <Badge variant="warning">Đang xử lý</Badge>
+                            )}
+                            {order.status === 'shipped' && (
+                              <Badge variant="info">Đang giao hàng</Badge>
+                            )}
+                            {order.status === 'delivered' && (
+                              <Badge variant="success">Đã giao hàng</Badge>
+                            )}
+                            {order.status === 'cancelled' && (
+                              <Badge variant="destructive">Đã hủy</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewOrder(order)}
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Xem
+                                <Eye className="w-4 h-4" />
                               </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Chi Tiết Đơn Hàng #{selectedOrder?.order_id}</DialogTitle>
-                              </DialogHeader>
-                              {selectedOrder && (
-                                <div className="space-y-6">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h4 className="font-semibold mb-2">Thông Tin Khách Hàng</h4>
-                                      <p><strong>Tên:</strong> {selectedOrder.account.full_name}</p>
-                                      <p><strong>Email:</strong> {selectedOrder.account.email}</p>
-                                      <p><strong>Điện thoại:</strong> {selectedOrder.account.phone || 'Chưa cập nhật'}</p>
-                                      <p><strong>Địa chỉ:</strong> {selectedOrder.account.address || 'Chưa cập nhật'}</p>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-semibold mb-2">Thông Tin Đơn Hàng</h4>
-                                      <p><strong>Ngày đặt:</strong> {new Date(selectedOrder.order_date).toLocaleString('vi-VN')}</p>
-                                      <p><strong>Trạng thái:</strong> {getStatusBadge(selectedOrder.status)}</p>
-                                      <p><strong>Tổng tiền:</strong> {selectedOrder.total_amount.toLocaleString('vi-VN')}₫</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div>
-                                    <h4 className="font-semibold mb-4">Sản Phẩm Đặt Mua</h4>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Sản Phẩm</TableHead>
-                                          <TableHead>Số Lượng</TableHead>
-                                          <TableHead>Đơn Giá</TableHead>
-                                          <TableHead>Thành Tiền</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {selectedOrder.order_details.map((detail) => (
-                                          <TableRow key={detail.order_detail_id}>
-                                            <TableCell>
-                                              <div className="flex items-center space-x-3">
-                                                <img 
-                                                  src={detail.product.image_path || '/placeholder.svg'} 
-                                                  alt={detail.product.name}
-                                                  className="w-12 h-12 object-cover rounded"
-                                                />
-                                                <div>
-                                                  <p className="font-medium">{detail.product.name}</p>
-                                                  <p className="text-sm text-gray-500">{detail.product.category}</p>
-                                                </div>
-                                              </div>
-                                            </TableCell>
-                                            <TableCell>{detail.quantity}</TableCell>
-                                            <TableCell>{detail.price.toLocaleString('vi-VN')}₫</TableCell>
-                                            <TableCell>{(detail.quantity * detail.price).toLocaleString('vi-VN')}₫</TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-
-                                  <div className="flex gap-2">
-                                    <Select 
-                                      value={selectedOrder.status} 
-                                      onValueChange={(value) => updateOrderStatus(selectedOrder.order_id, value)}
-                                    >
-                                      <SelectTrigger className="w-48">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                                        <SelectItem value="Đã giao">Đã giao</SelectItem>
-                                        <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <Select 
-                            value={order.status} 
-                            onValueChange={(value) => updateOrderStatus(order.order_id, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                              <SelectItem value="Đã giao">Đã giao</SelectItem>
-                              <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2 className="h-4 w-4" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditOrder(order)}
+                              >
+                                <Edit className="w-4 h-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Bạn có chắc chắn muốn xóa đơn hàng #{order.order_id}? 
-                                  Hành động này không thể hoàn tác.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => deleteOrder(order.order_id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Xóa
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteOrder(order)}
+                                className="text-red-500 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {sortedOrders.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center">
+                            Không có đơn hàng nào.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+              <TabsContent value="pending" className="outline-none">
+                <div>Đang chờ xử lý content</div>
+              </TabsContent>
+              <TabsContent value="processing" className="outline-none">
+                <div>Đang xử lý content</div>
+              </TabsContent>
+              <TabsContent value="shipped" className="outline-none">
+                <div>Đang giao hàng content</div>
+              </TabsContent>
+              <TabsContent value="delivered" className="outline-none">
+                <div>Đã giao hàng content</div>
+              </TabsContent>
+              <TabsContent value="cancelled" className="outline-none">
+                <div>Đã hủy content</div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
-      
       <Footer />
-    </div>
+    </>
   );
 };
 
