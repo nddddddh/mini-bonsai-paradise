@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,9 @@ import PlantCard from "@/components/PlantCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName, getCategoryId } from "@/types/supabase";
+import { CategoryNavigationProps } from "@/types/navigation";
 
-interface CategoryProductsProps {
-  navigate: (path: string) => void;
-  category?: string;
-}
-
-const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
-  const { category: categoryParam } = useParams();
+const CategoryProducts = ({ navigate, category }: CategoryNavigationProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -32,23 +28,23 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
 
   // Convert category URL param to display name
   const getCategoryDisplayName = () => {
-    if (!categoryParam) return "Sản phẩm";
-    const categoryId = getCategoryIdFromSlug(categoryParam);
+    if (!category) return "Sản phẩm";
+    const categoryId = getCategoryIdFromSlug(category);
     return getCategoryName(categoryId);
   };
 
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProductsByCategory();
-  }, [categoryParam]);
+  }, [category]);
 
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
       
-      if (!categoryParam) return;
+      if (!category) return;
       
-      const categoryId = getCategoryIdFromSlug(categoryParam);
+      const categoryId = getCategoryIdFromSlug(category);
       
       const { data, error } = await supabase
         .from('products')
