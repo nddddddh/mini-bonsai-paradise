@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +13,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-interface CheckoutProps {
-  navigate: (path: string) => void;
-}
-
-const Checkout = ({ navigate }: CheckoutProps) => {
+const Checkout = () => {
+  const navigate = useNavigate();
   const { items, clearCart, cartTotal } = useCart();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -238,14 +236,14 @@ const Checkout = ({ navigate }: CheckoutProps) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <button onClick={() => navigate('/')} className="hover:text-nature-600">Trang chủ</button>
+          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
           <span className="mx-2">/</span>
-          <button onClick={() => navigate('/cart')} className="hover:text-nature-600">Giỏ hàng</button>
+          <Link to="/cart" className="hover:text-nature-600">Giỏ hàng</Link>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">Thanh toán</span>
         </div>
@@ -380,7 +378,7 @@ const Checkout = ({ navigate }: CheckoutProps) => {
                     htmlFor="agreeToTerms"
                     className={`text-sm font-normal ${formErrors.agreeToTerms ? "text-red-500" : ""}`}
                   >
-                    Tôi đã đọc và đồng ý với <button onClick={() => navigate("/terms")} className="text-nature-600 underline">điều khoản dịch vụ</button> của MiniPlants
+                    Tôi đã đọc và đồng ý với <Link to="/terms" className="text-nature-600">điều khoản dịch vụ</Link> của MiniPlants
                   </Label>
                   {formErrors.agreeToTerms && (
                     <p className="text-sm text-red-500">{formErrors.agreeToTerms}</p>
@@ -389,10 +387,12 @@ const Checkout = ({ navigate }: CheckoutProps) => {
               </div>
               
               <div className="mt-8 flex flex-wrap gap-4">
-                <Button type="button" variant="outline" className="flex items-center gap-2 border-nature-500 text-nature-700 hover:bg-nature-50" onClick={() => navigate('/cart')}>
-                  <ChevronLeft className="w-4 h-4" />
-                  Quay lại giỏ hàng
-                </Button>
+                <Link to="/cart">
+                  <Button type="button" variant="outline" className="flex items-center gap-2 border-nature-500 text-nature-700 hover:bg-nature-50">
+                    <ChevronLeft className="w-4 h-4" />
+                    Quay lại giỏ hàng
+                  </Button>
+                </Link>
                 <Button 
                   type="submit" 
                   className="bg-nature-600 hover:bg-nature-700 text-white ml-auto"
@@ -458,7 +458,7 @@ const Checkout = ({ navigate }: CheckoutProps) => {
       </div>
       
       <div className="mt-auto">
-        <Footer navigate={navigate} />
+        <Footer />
       </div>
     </div>
   );

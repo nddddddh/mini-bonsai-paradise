@@ -1,212 +1,227 @@
-import { useEffect } from "react";
+
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Leaf, Heart, Star } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CollectionsProps } from "@/types/navigation";
+import { supabase } from "@/integrations/supabase/client";
+import { getCategoryName } from "@/types/supabase";
 
-const Collections = ({ navigate }: CollectionsProps) => {
+interface CollectionData {
+  categoryId: number;
+  categoryName: string;
+  count: number;
+  image: string;
+  slug: string;
+}
+
+const Collections = () => {
+  const [collections, setCollections] = useState<CollectionData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Convert category ID to URL slug
+  const getCategorySlug = (categoryId: number) => {
+    const mapping: Record<number, string> = {
+      1: "cay-co-hoa", // Cây có hoa
+      2: "mini",       // Mini
+      3: "phong-thuy"  // Phong thủy
+    };
+    return mapping[categoryId] || "mini";
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchCollections();
   }, []);
 
-  const collectionsData = [
-    {
-      id: 1,
-      name: "Cây có hoa",
-      description: "Tuyển chọn các loại cây cảnh có hoa đẹp và dễ chăm sóc.",
-      imageUrl: "https://images.unsplash.com/photo-1563029063-26944995c617?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "cay-co-hoa"
-    },
-    {
-      id: 2,
-      name: "Cây mini",
-      description: "Bộ sưu tập cây cảnh mini phù hợp cho không gian nhỏ.",
-      imageUrl: "https://images.unsplash.com/photo-1618937957547-50c81a9f4a84?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "mini"
-    },
-    {
-      id: 3,
-      name: "Cây phong thủy",
-      description: "Các loại cây mang lại may mắn và tài lộc theo phong thủy.",
-      imageUrl: "https://images.unsplash.com/photo-1629241494478-44739339f194?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "phong-thuy"
-    },
-    {
-      id: 4,
-      name: "Cây nội thất",
-      description: "Các loại cây nội thất giúp không gian sống thêm xanh mát.",
-      imageUrl: "https://images.unsplash.com/photo-1587330204584-3256356c1916?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "cay-noi-that"
-    },
-    {
-      id: 5,
-      name: "Sen đá",
-      description: "Tuyển chọn các loại sen đá đẹp và dễ chăm sóc.",
-      imageUrl: "https://images.unsplash.com/photo-1608744245047-359e94874961?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "sen-da"
-    },
-    {
-      id: 6,
-      name: "Xương rồng",
-      description: "Bộ sưu tập xương rồng mini phù hợp cho không gian nhỏ.",
-      imageUrl: "https://images.unsplash.com/photo-1541742072769-639763429744?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      category: "xuong-rong"
-    },
-  ];
+  const fetchCollections = async () => {
+    try {
+      setLoading(true);
+
+      console.log('=== COLLECTIONS PAGE DEBUG ===');
+      
+      // Get categories with product counts and sample images
+      const { data, error } = await supabase
+        .from('products')
+        .select('category, image_path')
+        .order('product_id', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching collections:', error);
+        throw error;
+      }
+
+      console.log('Products data from database:', data);
+
+      // Group products by category and get first image for each
+      const categoryMap = new Map<number, { count: number; image: string }>();
+      
+      data?.forEach(product => {
+        const categoryId = product.category;
+        console.log('Processing product category ID:', categoryId);
+        
+        if (categoryMap.has(categoryId)) {
+          categoryMap.get(categoryId)!.count += 1;
+        } else {
+          categoryMap.set(categoryId, {
+            count: 1,
+            image: product.image_path || '/placeholder.svg'
+          });
+        }
+      });
+
+      console.log('Category map:', categoryMap);
+
+      // Convert to array format
+      const collectionsData: CollectionData[] = Array.from(categoryMap.entries()).map(([categoryId, data]) => {
+        const categoryName = getCategoryName(categoryId);
+        const slug = getCategorySlug(categoryId);
+        console.log(`Collection: ID=${categoryId} -> Name=${categoryName} -> slug=${slug}, count=${data.count}`);
+        
+        return {
+          categoryId,
+          categoryName,
+          count: data.count,
+          image: data.image,
+          slug: slug
+        };
+      });
+
+      console.log('Final collections data:', collectionsData);
+      console.log('=== COLLECTIONS PAGE DEBUG END ===');
+
+      setCollections(collectionsData);
+
+      toast({
+        title: "Đã tải bộ sưu tập",
+        description: `Tìm thấy ${collectionsData.length} bộ sưu tập`,
+        duration: 3000,
+      });
+
+    } catch (error) {
+      console.error('Error fetching collections:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách bộ sưu tập",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <p className="text-gray-500">Đang tải bộ sưu tập...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
-      {/* Hero Section */}
-      <section 
-        className="relative bg-cover bg-center bg-blend-multiply bg-nature-900 h-[400px] flex items-center justify-center"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1563029063-26944995c617?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')" }}
-      >
-        <div className="absolute inset-0 bg-black/50"></div>
-        <div className="container mx-auto px-4 z-10 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Bộ sưu tập</h1>
-          <p className="text-xl text-gray-200 max-w-3xl mx-auto">
-            Khám phá các bộ sưu tập cây cảnh độc đáo của chúng tôi
-          </p>
-        </div>
-      </section>
-      
-      {/* Collections Grid */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {collectionsData.map(collection => (
-              <Card key={collection.id} className="bg-nature-50 border-nature-100">
-                <CardHeader className="p-0">
-                  <img 
-                    src={collection.imageUrl} 
-                    alt={collection.name} 
-                    className="w-full h-48 object-cover rounded-t-md" 
-                  />
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="text-xl font-semibold mb-2">{collection.name}</CardTitle>
-                  <CardDescription className="text-gray-600 mb-4">{collection.description}</CardDescription>
-                  <Button className="w-full bg-nature-600 hover:bg-nature-700" onClick={() => navigate(`/collections/${collection.category}`)}>
-                    Xem bộ sưu tập <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+      <div className="bg-white">
+        {/* Hero Section */}
+        <div className="relative bg-gradient-to-r from-nature-50 to-nature-100 py-16">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Bộ Sưu Tập Cây Cảnh
+              </h1>
+              <p className="text-lg text-gray-600 mb-8">
+                Khám phá những bộ sưu tập cây cảnh đặc biệt, từ cây có hoa rực rỡ đến cây mini xinh xắn
+              </p>
+            </div>
           </div>
         </div>
-      </section>
-      
-      {/* Testimonials */}
-      <section className="py-16 bg-nature-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Khách hàng nói gì về chúng tôi</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Những trải nghiệm thực tế từ khách hàng đã tin dùng sản phẩm của BonsaiHub
+
+        {/* Collections Grid */}
+        <div className="container mx-auto px-4 py-16">
+          {collections.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {collections.map((collection) => (
+                <div key={collection.categoryId} className="group cursor-pointer">
+                  <Link to={`/collections/${collection.slug}`}>
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+                      <div className="aspect-[4/3] overflow-hidden">
+                        <img
+                          src={collection.image}
+                          alt={collection.categoryName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-nature-600 transition-colors">
+                          {collection.categoryName}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          Bộ sưu tập {collection.categoryName.toLowerCase()}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">
+                            {collection.count} sản phẩm
+                          </span>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-nature-500 text-nature-700 hover:bg-nature-50"
+                          >
+                            Xem thêm
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="mb-4 text-gray-400">
+                <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Không tìm thấy bộ sưu tập nào</h3>
+              <p className="text-gray-600 mb-6">Hiện tại chưa có bộ sưu tập nào trong cửa hàng</p>
+              <Link to="/products">
+                <Button className="bg-nature-600 hover:bg-nature-700">
+                  Xem tất cả sản phẩm
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Call to Action */}
+        <div className="bg-nature-50 py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Không tìm thấy bộ sưu tập phù hợp?
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              Xem tất cả sản phẩm của chúng tôi để tìm cây cảnh hoàn hảo cho không gian của bạn
             </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-white border-nature-100">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                </div>
-                <p className="text-gray-700 mb-4">
-                  "Tôi rất hài lòng với cây cảnh mini mà tôi đã mua từ BonsaiHub. Cây được giao đến rất nhanh chóng và đóng gói cẩn thận. Chắc chắn sẽ ủng hộ shop dài dài."
-                </p>
-                <div className="flex items-center">
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80" 
-                    alt="Nguyễn Văn A" 
-                    className="w-10 h-10 rounded-full mr-3" 
-                  />
-                  <div>
-                    <p className="font-semibold">Nguyễn Văn A</p>
-                    <p className="text-sm text-gray-500">Hà Nội</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white border-nature-100">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-gray-300 w-4 h-4 mr-1" />
-                </div>
-                <p className="text-gray-700 mb-4">
-                  "Cây rất đẹp và được giao hàng nhanh chóng. Dịch vụ chăm sóc khách hàng của shop rất tốt, nhân viên tư vấn nhiệt tình và chu đáo."
-                </p>
-                <div className="flex items-center">
-                  <img 
-                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=776&q=80" 
-                    alt="Trần Thị B" 
-                    className="w-10 h-10 rounded-full mr-3" 
-                  />
-                  <div>
-                    <p className="font-semibold">Trần Thị B</p>
-                    <p className="text-sm text-gray-500">TP.HCM</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white border-nature-100">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                  <Star className="text-yellow-500 w-4 h-4 mr-1" />
-                </div>
-                <p className="text-gray-700 mb-4">
-                  "Tôi đã mua nhiều loại cây ở BonsaiHub và rất ưng ý với chất lượng sản phẩm. Cây khỏe mạnh và dễ chăm sóc, phù hợp với người mới bắt đầu."
-                </p>
-                <div className="flex items-center">
-                  <img 
-                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=761&q=80" 
-                    alt="Lê Văn C" 
-                    className="w-10 h-10 rounded-full mr-3" 
-                  />
-                  <div>
-                    <p className="font-semibold">Lê Văn C</p>
-                    <p className="text-sm text-gray-500">Đà Nẵng</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Link to="/products">
+              <Button size="lg" className="bg-nature-600 hover:bg-nature-700">
+                Xem tất cả sản phẩm
+              </Button>
+            </Link>
           </div>
         </div>
-      </section>
+      </div>
       
-      {/* Call to Action */}
-      <section className="py-24 bg-nature-100">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Bạn đã sẵn sàng để khám phá?</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto mb-8">
-            Hãy bắt đầu hành trình khám phá vẻ đẹp của thiên nhiên cùng BonsaiHub ngay hôm nay.
-          </p>
-          <Button className="bg-nature-600 hover:bg-nature-700" onClick={() => navigate('/products')}>
-            Xem tất cả sản phẩm
-          </Button>
-        </div>
-      </section>
-      
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };

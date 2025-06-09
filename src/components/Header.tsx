@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -7,11 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, Heart, User, Settings, Package, BarChart3, FileText, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { NavigationProps } from '@/types/navigation';
 
-interface HeaderProps extends NavigationProps {}
-
-const Header = ({ navigate }: HeaderProps) => {
+const Header = () => {
+  const navigate = useNavigate();
   const { state, dispatch, login } = useApp();
   const [showProfile, setShowProfile] = useState(false);
   const [showLogin, setShowLogin] = useState(false);

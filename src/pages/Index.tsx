@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -10,11 +11,7 @@ import { Product } from "@/types/supabase";
 import { getCategoryName } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
-interface IndexProps {
-  navigate: (path: string) => void;
-}
-
-const Index = ({ navigate }: IndexProps) => {
+const Index = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [heroImage, setHeroImage] = useState<string>('/placeholder.svg');
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -97,7 +94,7 @@ const Index = ({ navigate }: IndexProps) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-nature-50 to-nature-100 py-20">
@@ -113,13 +110,17 @@ const Index = ({ navigate }: IndexProps) => {
                 Chúng tôi cung cấp những cây cảnh chất lượng cao cùng dịch vụ chăm sóc tận tâm.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" className="bg-nature-600 hover:bg-nature-700 text-white w-full sm:w-auto" onClick={() => navigate('/products')}>
-                  Khám phá ngay
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="lg" className="border-nature-600 text-nature-600 hover:bg-nature-50 w-full sm:w-auto" onClick={() => navigate('/care-guide')}>
-                  Hướng dẫn chăm sóc
-                </Button>
+                <Link to="/products">
+                  <Button size="lg" className="bg-nature-600 hover:bg-nature-700 text-white w-full sm:w-auto">
+                    Khám phá ngay
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/care-guide">
+                  <Button variant="outline" size="lg" className="border-nature-600 text-nature-600 hover:bg-nature-50 w-full sm:w-auto">
+                    Hướng dẫn chăm sóc
+                  </Button>
+                </Link>
               </div>
             </div>
             <div className="relative">
@@ -199,10 +200,12 @@ const Index = ({ navigate }: IndexProps) => {
           )}
           
           <div className="text-center">
-            <Button size="lg" variant="outline" className="border-nature-600 text-nature-600 hover:bg-nature-50" onClick={() => navigate('/products')}>
-              Xem tất cả sản phẩm
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link to="/products">
+              <Button size="lg" variant="outline" className="border-nature-600 text-nature-600 hover:bg-nature-50">
+                Xem tất cả sản phẩm
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -227,7 +230,7 @@ const Index = ({ navigate }: IndexProps) => {
         </div>
       </section>
 
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };

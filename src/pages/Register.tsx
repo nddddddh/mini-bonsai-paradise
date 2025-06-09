@@ -1,186 +1,283 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Mail, User, Lock, ArrowLeft } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { RegisterProps } from "@/types/navigation";
 
-const Register = ({ navigate }: RegisterProps) => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const { signUp } = useAuth();
-  const { toast } = useToast();
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+const Register = () => {
+  const navigate = useNavigate();
+  
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    phone: '',
+    address: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-    if (password !== confirmPassword) {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const validateForm = () => {
+    if (!formData.username || !formData.email || !formData.password || !formData.fullName) {
       toast({
         title: "Lỗi",
-        description: "Mật khẩu và xác nhận mật khẩu không khớp.",
+        description: "Vui lòng điền đầy đủ thông tin bắt buộc",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
-    try {
-      const { error } = await signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu xác nhận không khớp",
+        variant: "destructive",
       });
+      return false;
+    }
 
-      if (error) {
+    if (formData.password.length < 6) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu phải có ít nhất 6 ký tự",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Lỗi",
+        description: "Email không hợp lệ",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      // Check if username or email already exists
+      const { data: existingUser } = await supabase
+        .from('accounts')
+        .select('username, email')
+        .or(`username.eq.${formData.username},email.eq.${formData.email}`)
+        .single();
+
+      if (existingUser) {
         toast({
           title: "Lỗi",
+          description: "Tên đăng nhập hoặc email đã tồn tại",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Create the account directly
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert({
+          username: formData.username,
+          email: formData.email,
+          password_hash: formData.password, // In production, hash this password
+          full_name: formData.fullName,
+          phone: formData.phone || null,
+          address: formData.address || null,
+          role: 1 // Customer role
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Registration error:', error);
+        toast({
+          title: "Lỗi đăng ký",
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Thành công",
-          description: "Vui lòng kiểm tra email của bạn để xác thực tài khoản.",
-        });
-        navigate("/verify-email");
+        return;
       }
+
+      toast({
+        title: "Đăng ký thành công",
+        description: "Tài khoản đã được tạo thành công!",
+      });
+
+      navigate('/login');
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Lỗi",
-        description: "Đã có lỗi xảy ra. Vui lòng thử lại sau.",
+        description: "Có lỗi xảy ra trong quá trình đăng ký",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+    <div className="min-h-screen bg-nature-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Đăng ký tài khoản</CardTitle>
+          <CardDescription>Tạo tài khoản mới để bắt đầu mua sắm</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Tên đăng nhập *</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
 
-      <div className="container mx-auto px-4 py-8 flex-grow">
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
-            <CardDescription>Nhập thông tin để tạo tài khoản mới</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center">
-                  <User className="mr-2 h-4 w-4" />
-                  Họ và tên
-                </Label>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Họ và tên *</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Số điện thoại</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                name="address"
+                type="text"
+                value={formData.address}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Mật khẩu *</Label>
+              <div className="relative">
                 <Input
-                  id="name"
-                  placeholder="Nhập họ và tên"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleInputChange}
                   required
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Email
-                </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
+              <div className="relative">
                 <Input
-                  id="email"
-                  placeholder="Nhập email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
                   required
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center">
-                  <Lock className="mr-2 h-4 w-4" />
-                  Mật khẩu
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    placeholder="Nhập mật khẩu"
-                    type={passwordVisible ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    {passwordVisible ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="flex items-center">
-                  <Lock className="mr-2 h-4 w-4" />
-                  Xác nhận mật khẩu
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    placeholder="Xác nhận mật khẩu"
-                    type={confirmPasswordVisible ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    onClick={() =>
-                      setConfirmPasswordVisible(!confirmPasswordVisible)
-                    }
-                  >
-                    {confirmPasswordVisible ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full">
-                Đăng ký
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
 
-        <Button
-          variant="link"
-          className="mt-4 w-full max-w-md mx-auto justify-start"
-          onClick={() => navigate("/login")}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Đã có tài khoản? Đăng nhập
-        </Button>
-      </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-nature-600 hover:bg-nature-700"
+              disabled={loading}
+            >
+              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+            </Button>
+          </form>
 
-      <Footer navigate={navigate} />
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Đã có tài khoản?{' '}
+              <Link to="/login" className="text-nature-600 hover:underline font-medium">
+                Đăng nhập ngay
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

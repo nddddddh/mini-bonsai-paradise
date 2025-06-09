@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName, CATEGORY_MAPPING } from "@/types/supabase";
 import { products as mockProducts } from "@/data/products";
-import { ProductsProps } from "@/types/navigation";
 
-const Products = ({ navigate }: ProductsProps) => {
+const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,20 +109,20 @@ const Products = ({ navigate }: ProductsProps) => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar navigate={navigate} />
+        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
           </div>
         </div>
-        <Footer navigate={navigate} />
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -277,7 +277,7 @@ const Products = ({ navigate }: ProductsProps) => {
         </div>
       </div>
       
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };

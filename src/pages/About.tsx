@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -18,16 +19,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AboutProps } from "@/types/navigation";
 
-const About = ({ navigate }: AboutProps) => {
+const About = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+      <Navbar />
       
       {/* Hero Section */}
       <section 
@@ -62,9 +62,11 @@ const About = ({ navigate }: AboutProps) => {
               </div>
               
               <div className="mt-8">
-                <Button className="bg-nature-600 hover:bg-nature-700" onClick={() => navigate('/products')}>
-                  Khám phá bộ sưu tập
-                </Button>
+                <Link to="/products">
+                  <Button className="bg-nature-600 hover:bg-nature-700">
+                    Khám phá bộ sưu tập
+                  </Button>
+                </Link>
               </div>
             </div>
             
@@ -394,7 +396,7 @@ const About = ({ navigate }: AboutProps) => {
         </div>
       </section>
       
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };

@@ -1,4 +1,6 @@
+
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +10,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Mail, ArrowLeft } from 'lucide-react';
 
-interface ForgotPasswordProps {
-  navigate: (path: string) => void;
-}
-
-const ForgotPassword = ({ navigate }: ForgotPasswordProps) => {
+const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -32,7 +30,7 @@ const ForgotPassword = ({ navigate }: ForgotPasswordProps) => {
 
   return (
     <>
-      <Navbar navigate={navigate} />
+      <Navbar />
       <div className="container mx-auto py-16 px-4">
         <div className="max-w-md mx-auto">
           <Card>
@@ -102,18 +100,18 @@ const ForgotPassword = ({ navigate }: ForgotPasswordProps) => {
               )}
             </CardContent>
             <CardFooter className="flex flex-col items-center">
-              <button 
-                onClick={() => navigate('/login')}
+              <Link 
+                to="/login"
                 className="flex items-center text-sm text-nature-600 hover:text-nature-700"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Quay lại trang đăng nhập
-              </button>
+              </Link>
             </CardFooter>
           </Card>
         </div>
       </div>
-      <Footer navigate={navigate} />
+      <Footer />
     </>
   );
 };

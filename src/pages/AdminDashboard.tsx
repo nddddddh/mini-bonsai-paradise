@@ -1,343 +1,467 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart3, 
-  Users, 
-  Package, 
-  ShoppingCart,
-  TrendingUp,
-  DollarSign,
-  Eye,
-  Plus
-} from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
-import { AdminDashboardProps } from "@/types/navigation";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { DollarSign, ShoppingCart, Package, Users, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { getCategoryName } from '@/types/supabase';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
-const AdminDashboard = ({ navigate }: AdminDashboardProps) => {
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [recentOrders, setRecentOrders] = useState([]);
+interface DashboardStats {
+  totalRevenue: number;
+  totalOrders: number;
+  totalProducts: number;
+  totalCustomers: number;
+}
+
+interface DailyRevenue {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+interface ProductSales {
+  product_id: number;
+  name: string;
+  category: number;
+  total_sold: number;
+  total_revenue: number;
+}
+
+interface CategoryStats {
+  category: number;
+  category_name: string;
+  total_products: number;
+  total_sold: number;
+  total_revenue: number;
+}
+
+const AdminDashboard = () => {
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalCustomers: 0
+  });
+  const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
+  const [productSales, setProductSales] = useState<ProductSales[]>([]);
+  const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-  const { user } = useAuth();
-
-  // Check if user is admin
-  const isUserAdmin = user && user.role === 1;
 
   useEffect(() => {
-    if (!isUserAdmin) {
-      toast({
-        title: "Truy cập bị từ chối",
-        description: "Bạn không có quyền truy cập trang này.",
-        variant: "destructive",
-      });
-      navigate('/');
+    if (!user || !isAdmin()) {
+      navigate('/login');
       return;
     }
     fetchDashboardData();
-  }, [user, navigate, toast, isUserAdmin]);
+  }, [user, navigate]);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
     try {
-      // Fetch total users from accounts table
-      const { data: usersData, error: usersError } = await supabase
-        .from('accounts')
-        .select('*', { count: 'exact' });
+      setLoading(true);
+      console.log('Fetching dashboard data...');
 
-      if (usersError) {
-        console.error("Error fetching total users:", usersError);
-        throw usersError;
-      }
-
-      setTotalUsers(usersData ? usersData.length : 0);
-
-      // Fetch total products
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*', { count: 'exact' });
-
-      if (productsError) {
-        console.error("Error fetching total products:", productsError);
-        throw productsError;
-      }
-
-      setTotalProducts(productsData ? productsData.length : 0);
-
-      // Fetch total orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact' });
-
-      if (ordersError) {
-        console.error("Error fetching total orders:", ordersError);
-        throw ordersError;
-      }
-
-      setTotalOrders(ordersData ? ordersData.length : 0);
-
-      // Fetch recent orders (e.g., last 5 orders)
-      const { data: recentOrdersData, error: recentOrdersError } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (recentOrdersError) {
-        console.error("Error fetching recent orders:", recentOrdersError);
-        throw recentOrdersError;
-      }
-
-      setRecentOrders(recentOrdersData || []);
+      // Fetch basic stats
+      await Promise.all([
+        fetchStats(),
+        fetchDailyRevenue(),
+        fetchProductSales(),
+        fetchCategoryStats()
+      ]);
 
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải dữ liệu thống kê.",
-        variant: "destructive",
-      });
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      // Total Revenue from completed orders
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('status', 'Đã giao');
+
+      if (revenueError) throw revenueError;
+
+      const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+
+      // Total Orders
+      const { count: totalOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+
+      if (ordersError) throw ordersError;
+
+      // Total Products
+      const { count: totalProducts, error: productsError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+
+      if (productsError) throw productsError;
+
+      // Total Customers (role = 1)
+      const { count: totalCustomers, error: customersError } = await supabase
+        .from('accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 1);
+
+      if (customersError) throw customersError;
+
+      setStats({
+        totalRevenue,
+        totalOrders: totalOrders || 0,
+        totalProducts: totalProducts || 0,
+        totalCustomers: totalCustomers || 0
+      });
+
+      console.log('Stats fetched:', { totalRevenue, totalOrders, totalProducts, totalCustomers });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDailyRevenue = async () => {
+    try {
+      // Get orders from last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_date, total_amount')
+        .eq('status', 'Đã giao')
+        .gte('order_date', thirtyDaysAgo.toISOString())
+        .order('order_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Group by date
+      const groupedData: { [key: string]: { revenue: number; orders: number } } = {};
+      
+      data?.forEach(order => {
+        const date = new Date(order.order_date).toLocaleDateString('vi-VN');
+        if (!groupedData[date]) {
+          groupedData[date] = { revenue: 0, orders: 0 };
+        }
+        groupedData[date].revenue += Number(order.total_amount);
+        groupedData[date].orders += 1;
+      });
+
+      const dailyData = Object.entries(groupedData).map(([date, data]) => ({
+        date,
+        revenue: data.revenue,
+        orders: data.orders
+      }));
+
+      setDailyRevenue(dailyData);
+      console.log('Daily revenue fetched:', dailyData);
+    } catch (error) {
+      console.error('Error fetching daily revenue:', error);
+    }
+  };
+
+  const fetchProductSales = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('order_details')
+        .select(`
+          product_id,
+          quantity,
+          price,
+          products!inner(name, category)
+        `)
+        .limit(100);
+
+      if (error) throw error;
+
+      // Group by product
+      const productSalesMap: { [key: number]: ProductSales } = {};
+      
+      data?.forEach(item => {
+        const productId = item.product_id;
+        if (!productSalesMap[productId]) {
+          productSalesMap[productId] = {
+            product_id: productId,
+            name: (item.products as any).name,
+            category: (item.products as any).category,
+            total_sold: 0,
+            total_revenue: 0
+          };
+        }
+        productSalesMap[productId].total_sold += item.quantity;
+        productSalesMap[productId].total_revenue += item.quantity * Number(item.price);
+      });
+
+      const salesData = Object.values(productSalesMap)
+        .sort((a, b) => b.total_sold - a.total_sold)
+        .slice(0, 10);
+
+      setProductSales(salesData);
+      console.log('Product sales fetched:', salesData);
+    } catch (error) {
+      console.error('Error fetching product sales:', error);
+    }
+  };
+
+  const fetchCategoryStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('category');
+
+      if (error) throw error;
+
+      // Group by category
+      const categoryMap: { [key: number]: CategoryStats } = {};
+      
+      data?.forEach(product => {
+        const category = product.category;
+        if (!categoryMap[category]) {
+          categoryMap[category] = {
+            category,
+            category_name: getCategoryName(category),
+            total_products: 0,
+            total_sold: 0,
+            total_revenue: 0
+          };
+        }
+        categoryMap[category].total_products += 1;
+      });
+
+      setCategoryStats(Object.values(categoryMap));
+      console.log('Category stats fetched:', Object.values(categoryMap));
+    } catch (error) {
+      console.error('Error fetching category stats:', error);
+    }
+  };
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  if (!user || !isAdmin()) {
+    return null;
+  }
+
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Navbar navigate={navigate} />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-16">
-            <p className="text-gray-500">Đang tải dữ liệu thống kê...</p>
+          <div className="text-center">
+            <p className="text-gray-500">Đang tải dữ liệu dashboard...</p>
           </div>
         </div>
-        <Footer navigate={navigate} />
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar navigate={navigate} />
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Chào mừng đến với trang quản trị!
-          </h1>
-          <p className="text-gray-600">
-            Tổng quan về hoạt động kinh doanh của bạn
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard Quản Trị</h1>
+          <p className="text-gray-600 mt-2">Tổng quan hoạt động kinh doanh</p>
         </div>
 
-        {/* Quick Statistics */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-blue-50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-blue-700">
-                  Tổng số người dùng
-                </span>
-                <Users className="text-blue-500 w-6 h-6" />
-              </CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng Doanh Thu</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-900">{totalUsers}</p>
-              <p className="text-sm text-gray-500">
-                <TrendingUp className="inline-block w-4 h-4 mr-1" />
-                30% so với tháng trước
+              <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString('vi-VN')}₫</div>
+              <p className="text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3 inline mr-1" />
+                Từ các đơn hàng đã giao
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-green-50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-green-700">
-                  Tổng số sản phẩm
-                </span>
-                <Package className="text-green-500 w-6 h-6" />
-              </CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng Đơn Hàng</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-900">{totalProducts}</p>
-              <p className="text-sm text-gray-500">
-                <TrendingUp className="inline-block w-4 h-4 mr-1" />
-                15% so với tháng trước
+              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">
+                Tất cả đơn hàng trong hệ thống
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-yellow-700">
-                  Tổng số đơn hàng
-                </span>
-                <ShoppingCart className="text-yellow-500 w-6 h-6" />
-              </CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Sản Phẩm</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-900">{totalOrders}</p>
-              <p className="text-sm text-gray-500">
-                <TrendingUp className="inline-block w-4 h-4 mr-1" />
-                20% so với tháng trước
+              <div className="text-2xl font-bold">{stats.totalProducts}</div>
+              <p className="text-xs text-muted-foreground">
+                Đang hoạt động
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-red-50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-red-700">
-                  Doanh thu
-                </span>
-                <DollarSign className="text-red-500 w-6 h-6" />
-              </CardTitle>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Khách Hàng</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-900">$12,500</p>
-              <p className="text-sm text-gray-500">
-                <TrendingUp className="inline-block w-4 h-4 mr-1" />
-                25% so với tháng trước
+              <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+              <p className="text-xs text-muted-foreground">
+                Tài khoản khách hàng
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Orders */}
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Doanh Thu 30 Ngày Qua</CardTitle>
+              <CardDescription>Biểu đồ doanh thu theo ngày (chỉ đơn đã giao)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  revenue: {
+                    label: "Doanh thu",
+                    color: "#10b981",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dailyRevenue}>
+                    <XAxis dataKey="date" />
+                    <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent />}
+                      formatter={(value) => [`${Number(value).toLocaleString('vi-VN')}₫`, 'Doanh thu']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sản Phẩm Bán Chạy</CardTitle>
+              <CardDescription>Top 5 sản phẩm có số lượng bán cao nhất</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  total_sold: {
+                    label: "Đã bán",
+                    color: "#3b82f6",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={productSales.slice(0, 5)}>
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="total_sold" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Category Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Đơn hàng gần đây</CardTitle>
-            <CardDescription>
-              Danh sách các đơn hàng mới nhất
-            </CardDescription>
+            <CardTitle>Phân Bố Theo Danh Mục</CardTitle>
+            <CardDescription>Số lượng sản phẩm theo từng danh mục</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Mã đơn hàng
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Khách hàng
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Ngày đặt hàng
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Tổng tiền
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Trạng thái
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Xem</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {recentOrders.map((order: any) => (
-                  <tr key={order.order_id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {order.order_id}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartContainer
+                config={{
+                  total_products: {
+                    label: "Số sản phẩm",
+                    color: "#10b981",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryStats}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ category_name, total_products }) => `${category_name}: ${total_products}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="total_products"
+                    >
+                      {categoryStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+              
+              <div className="space-y-4">
+                {categoryStats.map((item, index) => (
+                  <div key={item.category} className="flex items-center space-x-3">
+                    <div 
+                      className="w-4 h-4 rounded-full" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">{item.category_name}</div>
                       <div className="text-sm text-gray-500">
-                        {order.customer_name || 'N/A'}
+                        {item.total_products} sản phẩm
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {order.total_amount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge
-                        className={
-                          order.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }
-                      >
-                        {order.status === "completed" ? "Hoàn thành" : "Đang xử lý"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/admin/orders/${order.order_id}`)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Xem
-                      </Button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </CardContent>
         </Card>
-
-        {/* Actions */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Hành động nhanh
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/admin/products/new')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Thêm sản phẩm mới
-            </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/admin/orders')}>
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Quản lý đơn hàng
-            </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => navigate('/admin/products')}>
-              <Package className="w-4 h-4 mr-2" />
-              Quản lý sản phẩm
-            </Button>
-            <Button className="bg-red-600 hover:bg-red-700" onClick={() => navigate('/profile')}>
-              <Users className="w-4 h-4 mr-2" />
-              Quản lý người dùng
-            </Button>
-          </div>
-        </div>
       </div>
       
-      <Footer navigate={navigate} />
+      <Footer />
     </div>
   );
 };
