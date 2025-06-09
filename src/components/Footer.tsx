@@ -1,7 +1,7 @@
 
-import { Link } from 'react-router-dom';
+import { FooterProps } from '@/types/navigation';
 
-const Footer = () => {
+const Footer = ({ navigate }: FooterProps) => {
   return (
     <footer className="bg-nature-50 pt-16 pb-8 border-t">
       <div className="container mx-auto px-4">
@@ -41,19 +41,19 @@ const Footer = () => {
           <div>
             <h3 className="font-bold text-lg mb-4">Danh mục</h3>
             <ul className="space-y-2">
-              <li><Link to="/products" className="text-gray-600 hover:text-nature-600">Tất cả sản phẩm</Link></li>
-              <li><Link to="/collections/cay-co-hoa" className="text-gray-600 hover:text-nature-600">Cây có hoa</Link></li>
-              <li><Link to="/collections/mini" className="text-gray-600 hover:text-nature-600">Cây Mini</Link></li>
-              <li><Link to="/collections/phong-thuy" className="text-gray-600 hover:text-nature-600">Cây Phong Thủy</Link></li>
-              <li><Link to="/collections" className="text-gray-600 hover:text-nature-600">Bộ sưu tập</Link></li>
+              <li><button onClick={() => navigate('/products')} className="text-gray-600 hover:text-nature-600">Tất cả sản phẩm</button></li>
+              <li><button onClick={() => navigate('/collections/cay-co-hoa')} className="text-gray-600 hover:text-nature-600">Cây có hoa</button></li>
+              <li><button onClick={() => navigate('/collections/mini')} className="text-gray-600 hover:text-nature-600">Cây Mini</button></li>
+              <li><button onClick={() => navigate('/collections/phong-thuy')} className="text-gray-600 hover:text-nature-600">Cây Phong Thủy</button></li>
+              <li><button onClick={() => navigate('/collections')} className="text-gray-600 hover:text-nature-600">Bộ sưu tập</button></li>
             </ul>
           </div>
           
           <div>
             <h3 className="font-bold text-lg mb-4">Thông tin</h3>
             <ul className="space-y-2">
-              <li><Link to="/about" className="text-gray-600 hover:text-nature-600">Về chúng tôi</Link></li>
-              <li><Link to="/care-guide" className="text-gray-600 hover:text-nature-600">Chăm sóc</Link></li>
+              <li><button onClick={() => navigate('/about')} className="text-gray-600 hover:text-nature-600">Về chúng tôi</button></li>
+              <li><button onClick={() => navigate('/care-guide')} className="text-gray-600 hover:text-nature-600">Chăm sóc</button></li>
               <li><a href="#" className="text-gray-600 hover:text-nature-600">Chính sách đổi trả trong 7 ngày</a></li>
             </ul>
           </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -64,7 +63,7 @@ const App = () => {
         if (pathSegments.length === 1) {
           setCurrentRoute({ page: 'collections' });
         } else {
-          setCurrentRoute({ page: 'categoryProducts', params: { category: pathSegments[1] } });
+          setCurrentRoute({ page: 'collectionDetail', params: { category: pathSegments[1] } });
         }
         break;
       case 'cart':

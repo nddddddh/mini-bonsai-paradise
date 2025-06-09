@@ -13,7 +13,7 @@ import Footer from "@/components/Footer";
 import { CartPageProps } from "@/types/navigation";
 
 const CartPage = ({ navigate }: CartPageProps) => {
-  const { items, removeItem, updateQuantity, clearCart, totalAmount } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, getCartTotal } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,6 +47,8 @@ const CartPage = ({ navigate }: CartPageProps) => {
       description: "Tất cả sản phẩm đã được xóa khỏi giỏ hàng.",
     });
   };
+
+  const totalAmount = getCartTotal();
 
   if (items.length === 0) {
     return (
@@ -91,7 +93,6 @@ const CartPage = ({ navigate }: CartPageProps) => {
                   <div>
                     <h3 className="text-lg font-semibold">{item.name}</h3>
                     <Badge>{item.category}</Badge>
-                    <p className="text-gray-600">{item.description}</p>
                     <p className="text-nature-700 font-bold">{item.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</p>
                   </div>
                 </div>
