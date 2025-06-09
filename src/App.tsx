@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CartProvider } from "@/hooks/use-cart";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WishlistProvider } from "@/hooks/useWishlist";
+import { BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -123,67 +124,69 @@ const App = () => {
   const renderCurrentPage = () => {
     switch (currentRoute.page) {
       case 'index':
-        return <Index navigate={navigate} />;
+        return <Index />;
       case 'products':
-        return <Products navigate={navigate} />;
+        return <Products />;
       case 'productDetail':
-        return <ProductDetail navigate={navigate} productId={currentRoute.params?.id} />;
+        return <ProductDetail productId={currentRoute.params?.id} />;
       case 'categoryProducts':
-        return <CategoryProducts navigate={navigate} category={currentRoute.params?.category} />;
+        return <CategoryProducts category={currentRoute.params?.category} />;
       case 'cart':
-        return <CartPage navigate={navigate} />;
+        return <CartPage />;
       case 'checkout':
-        return <Checkout navigate={navigate} />;
+        return <Checkout />;
       case 'login':
-        return <Login navigate={navigate} />;
+        return <Login />;
       case 'loginAdmin':
-        return <LoginAdmin navigate={navigate} />;
+        return <LoginAdmin />;
       case 'register':
-        return <Register navigate={navigate} />;
+        return <Register />;
       case 'verifyEmail':
-        return <VerifyEmail navigate={navigate} />;
+        return <VerifyEmail />;
       case 'forgotPassword':
-        return <ForgotPassword navigate={navigate} />;
+        return <ForgotPassword />;
       case 'resetPassword':
-        return <ResetPassword navigate={navigate} />;
+        return <ResetPassword />;
       case 'careGuide':
-        return <CareGuide navigate={navigate} />;
+        return <CareGuide />;
       case 'careGuideDetail':
-        return <CareGuideDetail navigate={navigate} slug={currentRoute.params?.slug} />;
+        return <CareGuideDetail slug={currentRoute.params?.slug} />;
       case 'collections':
-        return <Collections navigate={navigate} />;
+        return <Collections />;
       case 'collectionDetail':
-        return <CollectionDetail navigate={navigate} category={currentRoute.params?.category} />;
+        return <CollectionDetail category={currentRoute.params?.category} />;
       case 'about':
-        return <About navigate={navigate} />;
+        return <About />;
       case 'profile':
-        return <Profile navigate={navigate} />;
+        return <Profile />;
       case 'wishlist':
-        return <Wishlist navigate={navigate} />;
+        return <Wishlist />;
       case 'adminDashboard':
-        return <AdminDashboard navigate={navigate} />;
+        return <AdminDashboard />;
       case 'orderManagement':
-        return <OrderManagement navigate={navigate} />;
+        return <OrderManagement />;
       case 'productManagement':
-        return <ProductManagement navigate={navigate} />;
+        return <ProductManagement />;
       default:
-        return <NotFound navigate={navigate} />;
+        return <NotFound />;
     }
   };
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              {renderCurrentPage()}
-            </TooltipProvider>
-          </CartProvider>
-        </WishlistProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                {renderCurrentPage()}
+              </TooltipProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };
