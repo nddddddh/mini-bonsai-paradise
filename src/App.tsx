@@ -168,7 +168,7 @@ const App = () => {
       case 'productManagement':
         return <ProductManagement />;
       default:
-        return <NotFound />;
+        return <NotFound navigate={navigate} />;
     }
   };
 
