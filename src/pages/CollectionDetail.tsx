@@ -46,7 +46,7 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
       price: plant.price,
       image: plant.image,
       type: 'plant' as const,
-      difficulty: plant.difficulty || 'Dễ'
+      difficulty: 'Dễ' // Add default difficulty for plants
     })),
     ...products.map(product => ({
       id: product.product_id,
@@ -185,7 +185,7 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
                   <span className="text-lg font-semibold text-nature-600">
                     {item.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                   </span>
-                  {item.type === 'plant' && 'difficulty' in item && (
+                  {item.type === 'plant' && item.difficulty && (
                     <Badge variant="secondary">{item.difficulty}</Badge>
                   )}
                 </div>

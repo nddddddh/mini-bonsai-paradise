@@ -41,7 +41,7 @@ const Products = ({ navigate }: PageProps) => {
       image: plant.image,
       category: plant.category,
       type: 'plant' as const,
-      difficulty: plant.difficulty,
+      difficulty: 'Dễ', // Add default difficulty for plants
       stock: 10 // Default stock for plants
     })),
     ...products.map(product => ({
@@ -243,7 +243,7 @@ const Products = ({ navigate }: PageProps) => {
                     {item.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                   </span>
                   <div className="flex items-center gap-2">
-                    {item.type === 'plant' && 'difficulty' in item && (
+                    {item.type === 'plant' && item.difficulty && (
                       <Badge variant="secondary">{item.difficulty}</Badge>
                     )}
                     {item.stock > 0 ? (

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ const CategoryProducts = ({ navigate, category }: CategoryProductsProps) => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {products.map(product => (
-                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} />
+                <PlantCard key={product.product_id} plant={transformProductForPlantCard(product)} navigate={navigate} />
               ))}
             </div>
             

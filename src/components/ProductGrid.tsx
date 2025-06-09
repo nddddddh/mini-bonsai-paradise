@@ -4,7 +4,11 @@ import ProductCard from './ProductCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/database';
 
-const ProductGrid = () => {
+interface ProductGridProps {
+  navigate: (page: string, params?: { [key: string]: string }) => void;
+}
+
+const ProductGrid = ({ navigate }: ProductGridProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +69,7 @@ const ProductGrid = () => {
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.product_id} product={product} />
+              <ProductCard key={product.product_id} product={product} navigate={navigate} />
             ))}
           </div>
         ) : (
