@@ -1,212 +1,100 @@
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import PlantCard from "@/components/PlantCard";
+import { WishlistProps } from "@/types/navigation";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/hooks/use-cart';
-import { Wishlist as WishlistType, Product } from '@/types/supabase';
-import { getCategoryName } from '@/types/supabase';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { toast } from 'sonner';
-
-interface WishlistItem extends WishlistType {
-  product: Product;
-}
-
-const Wishlist = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+const Wishlist = ({ navigate }: WishlistProps) => {
+  const { wishlist, removeFromWishlist } = useWishlist();
   const { addItem } = useCart();
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    fetchWishlist();
-  }, [user, navigate]);
+    window.scrollTo(0, 0);
+  }, []);
 
-  const fetchWishlist = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('wishlist')
-        .select(`
-          *,
-          products(*)
-        `)
-        .eq('account_id', user.account_id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform the data to match our interface
-      const transformedData = data?.map(item => ({
-        ...item,
-        product: item.products
-      })) || [];
-
-      setWishlistItems(transformedData);
-    } catch (error) {
-      console.error('Error fetching wishlist:', error);
-      toast.error('Lỗi khi tải danh sách yêu thích');
-    } finally {
-      setLoading(false);
-    }
+  const handleAddToBag = (plant: any) => {
+    addItem(plant);
+    toast({
+      title: "Đã thêm vào giỏ hàng",
+      description: `${plant.name} đã được thêm vào giỏ hàng của bạn.`,
+    });
   };
 
-  const removeFromWishlist = async (wishlistId: number) => {
-    try {
-      const { error } = await supabase
-        .from('wishlist')
-        .delete()
-        .eq('id', wishlistId);
-
-      if (error) throw error;
-
-      setWishlistItems(items => items.filter(item => item.id !== wishlistId));
-      toast.success('Đã xóa khỏi danh sách yêu thích');
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      toast.error('Lỗi khi xóa khỏi danh sách yêu thích');
-    }
+  const handleRemoveFromWishlist = (plantId: string) => {
+    removeFromWishlist(plantId);
+    toast({
+      title: "Đã xóa khỏi yêu thích",
+      description: "Sản phẩm đã được xóa khỏi danh sách yêu thích của bạn.",
+    });
   };
-
-  const addToCart = (product: Product) => {
-    // Convert Product to Plant format for cart compatibility
-    const plantForCart = {
-      id: product.product_id,
-      name: product.name,
-      price: product.price,
-      image: product.image_path || '',
-      category: getCategoryName(product.category),
-      stock: product.stock_quantity
-    };
-    
-    addItem(plantForCart);
-    toast.success('Đã thêm vào giỏ hàng');
-  };
-
-  if (!user) {
-    return null;
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
+    <div className="flex flex-col min-h-screen">
+      <Navbar navigate={navigate} />
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Heart className="w-8 h-8 mr-3 text-red-500" />
-            Sản Phẩm Yêu Thích
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Danh sách yêu thích
           </h1>
-          <p className="text-gray-600 mt-2">Những sản phẩm bạn đã lưu để mua sau</p>
+          <p className="text-gray-600">
+            Các sản phẩm bạn yêu thích sẽ được lưu ở đây
+          </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh Sách Yêu Thích ({wishlistItems.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Đang tải...</p>
-              </div>
-            ) : wishlistItems.length === 0 ? (
-              <div className="text-center py-12">
-                <Heart className="w-24 h-24 mx-auto text-gray-300 mb-6" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Danh sách yêu thích trống
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  Hãy thêm những sản phẩm bạn yêu thích để mua sau nhé!
-                </p>
-                <Button onClick={() => navigate('/products')}>
-                  Khám phá sản phẩm
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {wishlistItems.map((item) => (
-                  <Card key={item.id} className="group hover:shadow-lg transition-shadow">
-                    <div className="relative">
-                      <img 
-                        src={item.product.image_path || '/placeholder.svg'} 
-                        alt={item.product.name}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="absolute top-2 right-2 bg-white/90 hover:bg-white"
-                        onClick={() => removeFromWishlist(item.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                    
-                    <CardContent className="p-4">
-                      <div className="mb-2">
-                        <h3 className="font-semibold text-lg line-clamp-2">{item.product.name}</h3>
-                        <p className="text-sm text-gray-600">{getCategoryName(item.product.category)}</p>
-                      </div>
-                      
-                      <p className="text-gray-700 text-sm mb-4 line-clamp-2">
-                        {item.product.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="text-xl font-bold text-nature-600">
-                          {item.product.price.toLocaleString('vi-VN')}₫
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {item.product.stock_quantity > 0 ? (
-                            <span className="text-green-600">Còn hàng</span>
-                          ) : (
-                            <span className="text-red-600">Hết hàng</span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          className="flex-1 bg-nature-600 hover:bg-nature-700"
-                          onClick={() => addToCart(item.product)}
-                          disabled={item.product.stock_quantity <= 0}
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          {item.product.stock_quantity > 0 ? 'Thêm vào giỏ' : 'Hết hàng'}
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => navigate(`/products/${item.product.product_id}`)}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      </div>
-                      
-                      <div className="text-xs text-gray-500 mt-3">
-                        Đã thêm: {new Date(item.created_at).toLocaleDateString('vi-VN')}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {wishlist.length === 0 ? (
+          <Card className="text-center py-16">
+            <CardContent>
+              <Heart className="w-10 h-10 mx-auto text-gray-400 mb-4" />
+              <CardTitle className="text-xl font-semibold text-gray-700 mb-2">
+                Danh sách yêu thích của bạn đang trống
+              </CardTitle>
+              <p className="text-gray-500 mb-6">
+                Hãy thêm các sản phẩm bạn yêu thích vào đây để dễ dàng xem lại
+                sau này
+              </p>
+              <Button onClick={() => navigate("/products")}>
+                Khám phá sản phẩm ngay
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {wishlist.map((plant) => (
+              <Card key={plant.id}>
+                <PlantCard plant={plant} />
+                <CardContent className="flex items-center justify-between">
+                  <Button
+                    size="sm"
+                    className="bg-nature-600 hover:bg-nature-700 text-white"
+                    onClick={() => handleAddToBag(plant)}
+                  >
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Thêm vào giỏ
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="hover:text-red-500"
+                    onClick={() => handleRemoveFromWishlist(plant.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-      
-      <Footer />
+
+      <Footer navigate={navigate} />
     </div>
   );
 };

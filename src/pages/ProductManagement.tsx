@@ -1,59 +1,66 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  Edit, 
+  Trash2,
+  Package,
+  Image as ImageIcon,
+  Save,
+  X
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/supabase";
+import { getCategoryName, CATEGORY_MAPPING } from "@/types/supabase";
+import { ProductManagementProps } from "@/types/navigation";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Search, Upload, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Product } from '@/types/database';
-import { getCategoryName, CATEGORY_MAPPING } from '@/types/database';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { toast } from 'sonner';
-
-const ProductManagement = () => {
-  const { user, isAdmin } = useAuth();
-  const navigate = useNavigate();
+const ProductManagement = ({ navigate }: ProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [formData, setFormData] = useState({
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<number | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'product_id'>>({
     name: '',
-    category: 1,
-    description: '',
+    description: null,
     price: 0,
     stock_quantity: 0,
-    image_path: ''
+    category: 1,
+    image_path: null,
+    created_at: new Date().toISOString(),
   });
+  const [editProduct, setEditProduct] = useState<Omit<Product, 'product_id'>>({
+    name: '',
+    description: null,
+    price: 0,
+    stock_quantity: 0,
+    category: 1,
+    image_path: null,
+    created_at: new Date().toISOString(),
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!user || !isAdmin()) {
-      navigate('/login');
-      return;
-    }
     fetchProducts();
-  }, [user, navigate]);
-
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm]);
+  }, []);
 
   const fetchProducts = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -61,239 +68,110 @@ const ProductManagement = () => {
 
       if (error) {
         console.error('Error fetching products:', error);
-        throw error;
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải danh sách sản phẩm",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      console.log('Products fetched:', data);
+
       setProducts(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      toast.error('Lỗi khi tải danh sách sản phẩm');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterProducts = () => {
-    let filtered = products;
-
-    if (searchTerm) {
-      filtered = filtered.filter(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getCategoryName(product.category).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredProducts(filtered);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      category: 1,
-      description: '',
-      price: 0,
-      stock_quantity: 0,
-      image_path: ''
-    });
-    setEditingProduct(null);
-    setSelectedFile(null);
-    setPreviewUrl('');
-  };
-
-  const handleAddProduct = () => {
-    resetForm();
-    setIsDialogOpen(true);
-  };
-
-  const handleEditProduct = (product: Product) => {
-    setFormData({
-      name: product.name,
-      category: product.category,
-      description: product.description || '',
-      price: product.price,
-      stock_quantity: product.stock_quantity || 0,
-      image_path: product.image_path || ''
-    });
-    setEditingProduct(product);
-    setPreviewUrl(product.image_path || '');
-    setIsDialogOpen(true);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, WebP)');
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Kích thước file không được vượt quá 5MB');
-      return;
-    }
-
-    console.log('File selected:', file.name, file.type, file.size);
-    setSelectedFile(file);
-    
-    // Create preview URL
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    
-    // Clear image_path when file is selected
-    setFormData(prev => ({ ...prev, image_path: '' }));
-  };
-
-  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
-    try {
-      console.log('=== Starting image upload ===');
-      console.log('File details:', {
-        name: file.name,
-        type: file.type,
-        size: file.size
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách sản phẩm",
+        variant: "destructive",
       });
-
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      
-      console.log('Generated filename:', fileName);
-      console.log('Uploading to bucket: product-images');
-
-      // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-
-      console.log('Upload successful:', uploadData);
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
-      if (!urlData?.publicUrl) {
-        throw new Error('Failed to get public URL');
-      }
-
-      console.log('Public URL generated:', urlData.publicUrl);
-      return urlData.publicUrl;
-
-    } catch (error: any) {
-      console.error('=== Upload error ===', error);
-      throw error;
     }
   };
 
-  const handleSubmitProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.name.trim()) {
-      toast.error('Tên sản phẩm không được để trống');
-      return;
+  const handleCreateProduct = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert([newProduct])
+        .select()
+
+      if (error) {
+        console.error('Error creating product:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể tạo sản phẩm mới",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProducts(prevProducts => [...prevProducts, data[0]]);
+      setIsCreateDialogOpen(false);
+      setNewProduct({
+        name: '',
+        description: null,
+        price: 0,
+        stock_quantity: 0,
+        category: 1,
+        image_path: null,
+        created_at: new Date().toISOString(),
+      });
+      toast({
+        title: "Thành công",
+        description: "Sản phẩm đã được tạo thành công",
+      });
+    } catch (error) {
+      console.error('Error creating product:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tạo sản phẩm mới",
+        variant: "destructive",
+      });
     }
-    
-    if (formData.price <= 0) {
-      toast.error('Giá sản phẩm phải lớn hơn 0');
-      return;
-    }
-    
-    if (formData.stock_quantity < 0) {
-      toast.error('Số lượng tồn kho không được âm');
-      return;
-    }
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!selectedProduct) return;
 
     try {
-      setUploading(true);
-      let finalImagePath = formData.image_path;
+      const { data, error } = await supabase
+        .from('products')
+        .update(editProduct)
+        .eq('product_id', selectedProduct.product_id)
+        .select()
 
-      // Upload image if file is selected
-      if (selectedFile) {
-        console.log('=== Starting upload process ===');
-        toast.loading('Đang upload ảnh...');
-        
-        const uploadedUrl = await uploadImageToSupabase(selectedFile);
-        if (uploadedUrl) {
-          finalImagePath = uploadedUrl;
-          toast.dismiss();
-          toast.success('Upload ảnh thành công!');
-          console.log('Final image URL:', finalImagePath);
-        }
+      if (error) {
+        console.error('Error updating product:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể cập nhật sản phẩm",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const productData = {
-        name: formData.name,
-        category: formData.category,
-        description: formData.description,
-        price: formData.price,
-        stock_quantity: formData.stock_quantity,
-        image_path: finalImagePath
-      };
-
-      console.log('=== Saving product ===');
-      console.log('Product data:', productData);
-
-      if (editingProduct) {
-        // Update existing product
-        const { data, error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('product_id', editingProduct.product_id)
-          .select();
-
-        if (error) {
-          console.error('Error updating product:', error);
-          throw error;
-        }
-        
-        console.log('Product updated:', data);
-        toast.success('Cập nhật sản phẩm thành công');
-      } else {
-        // Create new product
-        const { data, error } = await supabase
-          .from('products')
-          .insert(productData)
-          .select();
-
-        if (error) {
-          console.error('Error creating product:', error);
-          throw error;
-        }
-        
-        console.log('Product created:', data);
-        toast.success('Thêm sản phẩm thành công');
-      }
-
-      setIsDialogOpen(false);
-      resetForm();
-      fetchProducts();
-    } catch (error: any) {
-      console.error('Error saving product:', error);
-      toast.error(`Lỗi: ${error.message}`);
-    } finally {
-      setUploading(false);
+      setProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.product_id === selectedProduct.product_id ? data[0] : product
+        )
+      );
+      setIsEditDialogOpen(false);
+      setSelectedProduct(null);
+      toast({
+        title: "Thành công",
+        description: "Sản phẩm đã được cập nhật thành công",
+      });
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật sản phẩm",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteProduct = async (productId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
-
     try {
-      console.log('Deleting product with ID:', productId);
-      
       const { error } = await supabase
         .from('products')
         .delete()
@@ -301,299 +179,311 @@ const ProductManagement = () => {
 
       if (error) {
         console.error('Error deleting product:', error);
-        throw error;
+        toast({
+          title: "Lỗi",
+          description: "Không thể xóa sản phẩm",
+          variant: "destructive",
+        });
+        return;
       }
 
-      console.log('Product deleted successfully');
-      toast.success('Xóa sản phẩm thành công');
-      fetchProducts();
-    } catch (error: any) {
+      setProducts(prevProducts => prevProducts.filter(product => product.product_id !== productId));
+      toast({
+        title: "Thành công",
+        description: "Sản phẩm đã được xóa thành công",
+      });
+    } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error(`Lỗi khi xóa sản phẩm: ${error.message}`);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa sản phẩm",
+        variant: "destructive",
+      });
     }
   };
 
-  const removeSelectedFile = () => {
-    setSelectedFile(null);
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(editingProduct?.image_path || '');
-  };
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === null || product.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  if (!user || !isAdmin()) {
-    return null;
-  }
+  const categories = Object.entries(CATEGORY_MAPPING).map(([id, name]) => ({
+    id: parseInt(id),
+    name
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="flex flex-col min-h-screen">
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Sản Phẩm</h1>
-          <p className="text-gray-600 mt-2">Thêm, sửa, xóa sản phẩm trong hệ thống</p>
-        </div>
-
-        {/* Header Actions */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Tìm kiếm sản phẩm..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={handleAddProduct} className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm Sản Phẩm
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">Quản lý sản phẩm</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-nature-600 hover:bg-nature-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Thêm sản phẩm
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Products Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh Sách Sản Phẩm ({filteredProducts.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Đang tải...</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hình ảnh</TableHead>
-                    <TableHead>Tên sản phẩm</TableHead>
-                    <TableHead>Danh mục</TableHead>
-                    <TableHead>Giá</TableHead>
-                    <TableHead>Tồn kho</TableHead>
-                    <TableHead>Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map((product) => (
-                    <TableRow key={product.product_id}>
-                      <TableCell>
-                        <img 
-                          src={product.image_path || '/placeholder.svg'} 
-                          alt={product.name}
-                          className="w-16 h-16 object-cover rounded"
-                          onError={(e) => {
-                            console.log('Image load error for:', product.image_path);
-                            (e.target as HTMLImageElement).src = '/placeholder.svg';
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{getCategoryName(product.category)}</TableCell>
-                      <TableCell>{product.price.toLocaleString('vi-VN')}₫</TableCell>
-                      <TableCell>
-                        <span className={(product.stock_quantity || 0) > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {product.stock_quantity || 0}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditProduct(product)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteProduct(product.product_id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Add/Edit Product Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProduct ? 'Chỉnh Sửa Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmitProduct} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Tên sản phẩm *</Label>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Tạo sản phẩm mới</DialogTitle>
+                <DialogDescription>
+                  Thêm sản phẩm mới vào hệ thống.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Tên sản phẩm
+                  </Label>
                   <Input
+                    type="text"
                     id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                    className="col-span-3"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="category">Danh mục *</Label>
-                  <Select 
-                    value={formData.category.toString()} 
-                    onValueChange={(value) => setFormData({...formData, category: parseInt(value)})}
-                  >
-                    <SelectTrigger>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Mô tả
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={newProduct.description || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="price" className="text-right">
+                    Giá
+                  </Label>
+                  <Input
+                    type="number"
+                    id="price"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="stock" className="text-right">
+                    Số lượng
+                  </Label>
+                  <Input
+                    type="number"
+                    id="stock"
+                    value={newProduct.stock_quantity}
+                    onChange={(e) => setNewProduct({ ...newProduct, stock_quantity: parseInt(e.target.value) })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Danh mục
+                  </Label>
+                  <Select onValueChange={(value) => setNewProduct({ ...newProduct, category: parseInt(value) })}>
+                    <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Chọn danh mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(CATEGORY_MAPPING).map(([id, name]) => (
-                        <SelectItem key={id} value={id}>
-                          {name}
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Mô tả</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Giá (VNĐ) *</Label>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="image" className="text-right">
+                    Đường dẫn ảnh
+                  </Label>
                   <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="stock_quantity">Số lượng tồn kho *</Label>
-                  <Input
-                    id="stock_quantity"
-                    type="number"
-                    min="0"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({...formData, stock_quantity: Number(e.target.value)})}
-                    required
+                    type="text"
+                    id="image"
+                    value={newProduct.image_path || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, image_path: e.target.value })}
+                    className="col-span-3"
                   />
                 </div>
               </div>
-              
-              {/* Image Upload Section */}
-              <div className="space-y-3">
-                <Label>Hình ảnh sản phẩm</Label>
-                
-                {/* File Upload */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
-                      onChange={handleFileSelect}
-                      className="flex-1"
-                    />
-                    {selectedFile && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={removeSelectedFile}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Chấp nhận: JPEG, PNG, WebP. Tối đa 5MB.
-                  </p>
-                </div>
+              <Button type="submit" className="bg-nature-600 hover:bg-nature-700" onClick={handleCreateProduct}>
+                Tạo sản phẩm
+              </Button>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-                {/* URL Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="image_url">Hoặc nhập URL ảnh</Label>
-                  <Input
-                    id="image_url"
-                    value={formData.image_path}
-                    onChange={(e) => {
-                      setFormData({...formData, image_path: e.target.value});
-                      if (e.target.value) {
-                        setPreviewUrl(e.target.value);
-                      }
-                    }}
-                    placeholder="https://example.com/image.jpg"
-                    disabled={!!selectedFile}
-                  />
-                </div>
+        <div className="grid gap-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <Input
+              placeholder="Tìm kiếm sản phẩm..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Select onValueChange={(value) => setFilterCategory(value === "all" ? null : parseInt(value))}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-                {/* Image Preview */}
-                {previewUrl && (
-                  <div className="space-y-2">
-                    <Label>Xem trước</Label>
-                    <div className="border rounded-lg p-2 bg-gray-50">
-                      <img 
-                        src={previewUrl}
-                        alt="Preview"
-                        className="w-32 h-32 object-cover rounded border mx-auto"
-                        onError={(e) => {
-                          console.log('Preview image error');
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  type="submit" 
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={uploading}
-                >
-                  {uploading ? 'Đang xử lý...' : editingProduct ? 'Cập nhật' : 'Thêm sản phẩm'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    resetForm();
-                  }}
-                  disabled={uploading}
-                >
-                  Hủy
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">ID</TableHead>
+                <TableHead>Tên sản phẩm</TableHead>
+                <TableHead>Danh mục</TableHead>
+                <TableHead>Giá</TableHead>
+                <TableHead>Số lượng</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.map((product) => (
+                <TableRow key={product.product_id}>
+                  <TableCell className="font-medium">{product.product_id}</TableCell>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{getCategoryName(product.category)}</TableCell>
+                  <TableCell>{product.price}</TableCell>
+                  <TableCell>{product.stock_quantity}</TableCell>
+                  <TableCell className="text-right">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setSelectedProduct(product);
+                          setEditProduct({
+                            name: product.name,
+                            description: product.description,
+                            price: product.price,
+                            stock_quantity: product.stock_quantity,
+                            category: product.category,
+                            image_path: product.image_path,
+                            created_at: product.created_at,
+                          });
+                        }}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Sửa
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Sửa sản phẩm</DialogTitle>
+                          <DialogDescription>
+                            Chỉnh sửa thông tin sản phẩm.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                              Tên sản phẩm
+                            </Label>
+                            <Input
+                              type="text"
+                              id="name"
+                              value={editProduct.name}
+                              onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="description" className="text-right">
+                              Mô tả
+                            </Label>
+                            <Textarea
+                              id="description"
+                              value={editProduct.description || ''}
+                              onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="price" className="text-right">
+                              Giá
+                            </Label>
+                            <Input
+                              type="number"
+                              id="price"
+                              value={editProduct.price}
+                              onChange={(e) => setEditProduct({ ...editProduct, price: parseFloat(e.target.value) })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="stock" className="text-right">
+                              Số lượng
+                            </Label>
+                            <Input
+                              type="number"
+                              id="stock"
+                              value={editProduct.stock_quantity}
+                              onChange={(e) => setEditProduct({ ...editProduct, stock_quantity: parseInt(e.target.value) })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="category" className="text-right">
+                              Danh mục
+                            </Label>
+                            <Select value={editProduct.category.toString()} onValueChange={(value) => setEditProduct({ ...editProduct, category: parseInt(value) })}>
+                              <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Chọn danh mục" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id.toString()}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="image" className="text-right">
+                              Đường dẫn ảnh
+                            </Label>
+                            <Input
+                              type="text"
+                              id="image"
+                              value={editProduct.image_path || ''}
+                              onChange={(e) => setEditProduct({ ...editProduct, image_path: e.target.value })}
+                              className="col-span-3"
+                            />
+                          </div>
+                        </div>
+                        <Button type="submit" className="bg-nature-600 hover:bg-nature-700" onClick={handleUpdateProduct}>
+                          Cập nhật sản phẩm
+                        </Button>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(product.product_id)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Xóa
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
-      <Footer />
+      <Footer navigate={navigate} />
     </div>
   );
 };

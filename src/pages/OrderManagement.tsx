@@ -1,441 +1,269 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Search, 
+  Filter, 
+  Eye, 
+  Edit, 
+  Trash2,
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
+  AlertCircle
+} from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { OrderManagementProps } from "@/types/navigation";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Eye, Search, Filter, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Order, OrderDetail, Product, Account } from '@/types/supabase';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { toast } from 'sonner';
-
-interface OrderWithDetails extends Order {
-  account: Account;
-  order_details: (OrderDetail & { product: Product })[];
-}
-
-const OrderManagement = () => {
-  const { user, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<OrderWithDetails[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+const OrderManagement = ({ navigate }: OrderManagementProps) => {
+  const [orders, setOrders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (!user || !isAdmin()) {
-      navigate('/login');
+    if (!isAdmin) {
+      toast({
+        title: "Truy cập bị từ chối",
+        description: "Bạn không có quyền truy cập trang này.",
+        variant: "destructive",
+      });
+      navigate('/');
       return;
     }
     fetchOrders();
-  }, [user, navigate]);
-
-  useEffect(() => {
-    filterOrders();
-  }, [orders, searchTerm, statusFilter]);
+  }, [isAdmin, navigate, toast]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      console.log('Fetching orders...');
-      
-      // Fetch orders with account details
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          accounts(*)
-        `)
-        .order('order_date', { ascending: false });
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (ordersError) {
-        console.error('Orders error:', ordersError);
-        throw ordersError;
+      if (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
       }
 
-      console.log('Orders data:', ordersData);
-
-      // Fetch order details with products for each order
-      const ordersWithDetails: OrderWithDetails[] = [];
-      
-      for (const order of ordersData || []) {
-        const { data: detailsData, error: detailsError } = await supabase
-          .from('order_details')
-          .select(`
-            *,
-            products(*)
-          `)
-          .eq('order_id', order.order_id);
-
-        if (detailsError) {
-          console.error('Order details error:', detailsError);
-          throw detailsError;
-        }
-
-        console.log(`Order ${order.order_id} details:`, detailsData);
-
-        // Transform the data to match our interface
-        const transformedDetails = detailsData?.map(detail => ({
-          ...detail,
-          product: detail.products
-        })) || [];
-
-        // Cast the order data to our interface
-        const transformedOrder: OrderWithDetails = {
-          order_id: order.order_id,
-          account_id: order.account_id,
-          order_date: order.order_date,
-          total_amount: order.total_amount,
-          status: order.status,
-          account: order.accounts,
-          order_details: transformedDetails
-        };
-
-        ordersWithDetails.push(transformedOrder);
-      }
-
-      console.log('Final orders with details:', ordersWithDetails);
-      setOrders(ordersWithDetails);
+      setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      toast.error('Lỗi khi tải danh sách đơn hàng');
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách đơn hàng",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const filterOrders = () => {
-    let filtered = orders;
-
-    if (searchTerm) {
-      filtered = filtered.filter(order => 
-        order.order_id.toString().includes(searchTerm) ||
-        order.account.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.account.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
-    }
-
-    setFilteredOrders(filtered);
-  };
-
-  const updateOrderStatus = async (orderId: number, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      console.log('Updating order status:', orderId, newStatus);
-      
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('order_id', orderId);
 
       if (error) {
-        console.error('Update order status error:', error);
+        console.error('Error updating order status:', error);
         throw error;
       }
 
-      // Update local state
-      setOrders(orders.map(order => 
-        order.order_id === orderId 
-          ? { ...order, status: newStatus }
-          : order
-      ));
+      // Optimistically update the UI
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.order_id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
 
-      // Update selected order if it's the one being updated
-      if (selectedOrder && selectedOrder.order_id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: newStatus });
-      }
-
-      toast.success('Cập nhật trạng thái đơn hàng thành công');
+      toast({
+        title: "Thành công",
+        description: `Đã cập nhật trạng thái đơn hàng thành ${newStatus}`,
+      });
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast.error('Lỗi khi cập nhật trạng thái đơn hàng');
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật trạng thái đơn hàng",
+        variant: "destructive",
+      });
     }
   };
 
-  const deleteOrder = async (orderId: number) => {
-    try {
-      console.log('Deleting order:', orderId);
-      
-      // First delete order details
-      const { error: detailsError } = await supabase
-        .from('order_details')
-        .delete()
-        .eq('order_id', orderId);
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch =
+      order.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.user_id.toLowerCase().includes(searchTerm.toLowerCase()); // Assuming you want to search by user ID as well
+    
+    const matchesStatus = filterStatus === "" || order.status === filterStatus;
 
-      if (detailsError) {
-        console.error('Delete order details error:', detailsError);
-        throw detailsError;
-      }
+    return matchesSearch && matchesStatus;
+  });
 
-      // Then delete the order
-      const { error: orderError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('order_id', orderId);
-
-      if (orderError) {
-        console.error('Delete order error:', orderError);
-        throw orderError;
-      }
-
-      // Update local state
-      setOrders(orders.filter(order => order.order_id !== orderId));
-      
-      toast.success('Xóa đơn hàng thành công');
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast.error('Lỗi khi xóa đơn hàng');
-    }
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("");
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Chờ xử lý':
-        return <Badge variant="secondary">Chờ xử lý</Badge>;
-      case 'Đã giao':
-        return <Badge className="bg-green-100 text-green-800">Đã giao</Badge>;
-      case 'Đã hủy':
-        return <Badge variant="destructive">Đã hủy</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
+  const orderStatusOptions = [
+    { value: "pending", label: "Chờ xử lý" },
+    { value: "processing", label: "Đang xử lý" },
+    { value: "shipped", label: "Đang giao hàng" },
+    { value: "delivered", label: "Đã giao hàng" },
+    { value: "cancelled", label: "Đã hủy" },
+  ];
 
-  if (!user || !isAdmin()) {
-    return null;
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar navigate={navigate} />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <p className="text-gray-500">Đang tải đơn hàng...</p>
+          </div>
+        </div>
+        <Footer navigate={navigate} />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="flex flex-col min-h-screen">
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Hàng</h1>
-          <p className="text-gray-600 mt-2">Theo dõi và quản lý tất cả đơn hàng</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý đơn hàng</h1>
+          <p className="text-gray-600">Theo dõi và quản lý tất cả đơn hàng</p>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Tìm kiếm theo mã đơn, tên khách hàng hoặc email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Lọc theo trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                  <SelectItem value="Đã giao">Đã giao</SelectItem>
-                  <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Bộ lọc và tìm kiếm</span>
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Xóa bộ lọc
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Tìm kiếm</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Tìm kiếm theo ID đơn hàng hoặc ID người dùng..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
 
-        {/* Orders Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh Sách Đơn Hàng ({filteredOrders.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Đang tải...</p>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Trạng thái</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tất cả</SelectItem>
+                      {orderStatusOptions.map(status => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ) : (
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Danh sách đơn hàng</CardTitle>
+              <CardDescription>
+                Tổng số đơn hàng: {filteredOrders.length}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Mã Đơn</TableHead>
-                    <TableHead>Khách Hàng</TableHead>
-                    <TableHead>Ngày Đặt</TableHead>
-                    <TableHead>Tổng Tiền</TableHead>
-                    <TableHead>Trạng Thái</TableHead>
-                    <TableHead>Thao Tác</TableHead>
+                    <TableHead>ID đơn hàng</TableHead>
+                    <TableHead>ID người dùng</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead>Tổng tiền</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.order_id}>
-                      <TableCell className="font-medium">#{order.order_id}</TableCell>
+                      <TableCell>{order.order_id}</TableCell>
+                      <TableCell>{order.user_id}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{order.account.full_name}</div>
-                          <div className="text-sm text-gray-500">{order.account.email}</div>
-                        </div>
+                        {new Date(order.created_at).toLocaleDateString()}
                       </TableCell>
+                      <TableCell>{order.total_amount}</TableCell>
                       <TableCell>
-                        {new Date(order.order_date).toLocaleDateString('vi-VN')}
+                        <Select
+                          value={order.status}
+                          onValueChange={(value) => handleStatusChange(order.order_id, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={order.status} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {orderStatusOptions.map(status => (
+                              <SelectItem key={status.value} value={status.value}>
+                                {status.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
-                      <TableCell>{order.total_amount.toLocaleString('vi-VN')}₫</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setSelectedOrder(order)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Xem
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Chi Tiết Đơn Hàng #{selectedOrder?.order_id}</DialogTitle>
-                              </DialogHeader>
-                              {selectedOrder && (
-                                <div className="space-y-6">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h4 className="font-semibold mb-2">Thông Tin Khách Hàng</h4>
-                                      <p><strong>Tên:</strong> {selectedOrder.account.full_name}</p>
-                                      <p><strong>Email:</strong> {selectedOrder.account.email}</p>
-                                      <p><strong>Điện thoại:</strong> {selectedOrder.account.phone || 'Chưa cập nhật'}</p>
-                                      <p><strong>Địa chỉ:</strong> {selectedOrder.account.address || 'Chưa cập nhật'}</p>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-semibold mb-2">Thông Tin Đơn Hàng</h4>
-                                      <p><strong>Ngày đặt:</strong> {new Date(selectedOrder.order_date).toLocaleString('vi-VN')}</p>
-                                      <p><strong>Trạng thái:</strong> {getStatusBadge(selectedOrder.status)}</p>
-                                      <p><strong>Tổng tiền:</strong> {selectedOrder.total_amount.toLocaleString('vi-VN')}₫</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div>
-                                    <h4 className="font-semibold mb-4">Sản Phẩm Đặt Mua</h4>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Sản Phẩm</TableHead>
-                                          <TableHead>Số Lượng</TableHead>
-                                          <TableHead>Đơn Giá</TableHead>
-                                          <TableHead>Thành Tiền</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {selectedOrder.order_details.map((detail) => (
-                                          <TableRow key={detail.order_detail_id}>
-                                            <TableCell>
-                                              <div className="flex items-center space-x-3">
-                                                <img 
-                                                  src={detail.product.image_path || '/placeholder.svg'} 
-                                                  alt={detail.product.name}
-                                                  className="w-12 h-12 object-cover rounded"
-                                                />
-                                                <div>
-                                                  <p className="font-medium">{detail.product.name}</p>
-                                                  <p className="text-sm text-gray-500">{detail.product.category}</p>
-                                                </div>
-                                              </div>
-                                            </TableCell>
-                                            <TableCell>{detail.quantity}</TableCell>
-                                            <TableCell>{detail.price.toLocaleString('vi-VN')}₫</TableCell>
-                                            <TableCell>{(detail.quantity * detail.price).toLocaleString('vi-VN')}₫</TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-
-                                  <div className="flex gap-2">
-                                    <Select 
-                                      value={selectedOrder.status} 
-                                      onValueChange={(value) => updateOrderStatus(selectedOrder.order_id, value)}
-                                    >
-                                      <SelectTrigger className="w-48">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                                        <SelectItem value="Đã giao">Đã giao</SelectItem>
-                                        <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <Select 
-                            value={order.status} 
-                            onValueChange={(value) => updateOrderStatus(order.order_id, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Chờ xử lý">Chờ xử lý</SelectItem>
-                              <SelectItem value="Đã giao">Đã giao</SelectItem>
-                              <SelectItem value="Đã hủy">Đã hủy</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Bạn có chắc chắn muốn xóa đơn hàng #{order.order_id}? 
-                                  Hành động này không thể hoàn tác.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => deleteOrder(order.order_id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Xóa
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {filteredOrders.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4">
+                        Không có đơn hàng nào.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
       
-      <Footer />
+      <Footer navigate={navigate} />
     </div>
   );
 };
