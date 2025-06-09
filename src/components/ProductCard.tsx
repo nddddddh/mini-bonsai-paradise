@@ -1,54 +1,38 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product, getCategoryName } from '@/types/database';
-import { useApp } from '../context/AppContext';
-import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/hooks/use-cart';
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
+  navigate: (page: string, params?: { [key: string]: string }) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const navigate = useNavigate();
-  const { state, dispatch } = useApp();
-  const { toast } = useToast();
-  const isFavorite = state.favorites.includes(product.product_id.toString());
+const ProductCard: React.FC<ProductCardProps> = ({ product, navigate }) => {
+  const { addItem } = useCart();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Convert Product to the format expected by the cart
     const cartProduct = {
-      id: product.product_id.toString(),
+      id: product.product_id,
       name: product.name,
       price: product.price,
       image: product.image_path || '/placeholder.svg',
       category: getCategoryName(product.category),
       stock: product.stock_quantity || 0,
-      description: product.description || ''
     };
-    dispatch({ type: 'ADD_TO_CART', payload: cartProduct });
-    toast({
-      title: "Đã thêm vào giỏ hàng",
-      description: `${product.name} đã được thêm vào giỏ hàng`,
-    });
-  };
-
-  const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    dispatch({ type: 'TOGGLE_FAVORITE', payload: product.product_id.toString() });
-    toast({
-      title: isFavorite ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích",
-      description: `${product.name} ${isFavorite ? 'đã được xóa khỏi' : 'đã được thêm vào'} danh sách yêu thích`,
-    });
+    addItem(cartProduct);
+    toast.success(`${product.name} đã được thêm vào giỏ hàng`);
   };
 
   const handleCardClick = () => {
-    navigate(`/product/${product.product_id}`);
+    navigate('product-detail', { id: product.product_id.toString() });
   };
 
   const formatPrice = (price: number) => {
@@ -69,14 +53,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`absolute top-2 right-2 ${isFavorite ? 'text-red-500' : 'text-gray-400'} hover:text-red-500 bg-white/80 hover:bg-white`}
-          onClick={handleToggleFavorite}
-        >
-          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-        </Button>
       </div>
       
       <CardContent className="p-4">

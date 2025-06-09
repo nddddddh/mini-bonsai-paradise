@@ -46,7 +46,7 @@ const CollectionDetail = ({ navigate, category }: CollectionDetailProps) => {
       price: plant.price,
       image: plant.image,
       type: 'plant' as const,
-      difficulty: plant.difficulty
+      difficulty: plant.difficulty || 'Dễ'
     })),
     ...products.map(product => ({
       id: product.product_id,
