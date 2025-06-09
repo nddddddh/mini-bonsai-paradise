@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,11 @@ import { Product } from "@/types/supabase";
 import { getCategoryName, CATEGORY_MAPPING } from "@/types/supabase";
 import { products as mockProducts } from "@/data/products";
 
-const Products = () => {
+interface ProductsProps {
+  navigate: (page: string, params?: { [key: string]: string }) => void;
+}
+
+const Products = ({ navigate }: ProductsProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,15 +45,12 @@ const Products = () => {
 
       if (error) {
         console.error('Error fetching products from database:', error);
-        // Fallback to mock data
         setProducts(mockProducts);
       } else {
-        // Use database data if available, otherwise fallback to mock data
         setProducts(data || mockProducts);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Fallback to mock data
       setProducts(mockProducts);
     } finally {
       setLoading(false);
@@ -70,7 +70,6 @@ const Products = () => {
       return matchesSearch && matchesCategory && matchesPrice;
     });
 
-    // Sort products
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "price-asc":
@@ -109,7 +108,7 @@ const Products = () => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
@@ -122,7 +121,7 @@ const Products = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -131,7 +130,6 @@ const Products = () => {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -143,7 +141,6 @@ const Products = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Search */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Tìm kiếm</label>
                   <div className="relative">
@@ -157,7 +154,6 @@ const Products = () => {
                   </div>
                 </div>
 
-                {/* Categories */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">Danh mục</label>
                   <div className="space-y-2">
@@ -178,7 +174,6 @@ const Products = () => {
                   </div>
                 </div>
 
-                {/* Price Range */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">Khoảng giá</label>
                   <div className="space-y-2">
@@ -200,77 +195,74 @@ const Products = () => {
             </Card>
           </div>
 
-          {/* Products Grid */}
           <div className="lg:col-span-3">
-            {/* Toolbar */}
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
                   {filteredProducts.length} sản phẩm
                 </span>
-                {selectedCategories.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCategories.map(categoryId => (
-                      <Badge key={categoryId} variant="secondary">
-                        {getCategoryName(categoryId)}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-4">
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Sắp xếp theo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="name">Tên A-Z</SelectItem>
-                    <SelectItem value="price-asc">Giá: Thấp đến cao</SelectItem>
-                    <SelectItem value="price-desc">Giá: Cao đến thấp</SelectItem>
+                    <SelectItem value="price-asc">Giá thấp đến cao</SelectItem>
+                    <SelectItem value="price-desc">Giá cao đến thấp</SelectItem>
                   </SelectContent>
                 </Select>
                 
-                <div className="flex border rounded-md">
+                <div className="flex items-center border rounded-md">
                   <Button
                     variant={viewMode === "grid" ? "default" : "ghost"}
                     size="sm"
                     onClick={() => setViewMode("grid")}
                   >
-                    <Grid className="h-4 w-4" />
+                    <Grid className="w-4 h-4" />
                   </Button>
                   <Button
                     variant={viewMode === "list" ? "default" : "ghost"}
                     size="sm"
                     onClick={() => setViewMode("list")}
                   >
-                    <List className="h-4 w-4" />
+                    <List className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </div>
-
-            {/* Products */}
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <Filter className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Không tìm thấy sản phẩm
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
-                </p>
-                <Button onClick={clearFilters}>Xóa bộ lọc</Button>
-              </div>
-            ) : (
-              <div className={
-                viewMode === "grid" 
-                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                  : "space-y-4"
+            
+            {filteredProducts.length > 0 ? (
+              <div className={viewMode === "grid" 
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" 
+                : "space-y-4"
               }>
                 {filteredProducts.map((product) => (
-                  <PlantCard key={product.product_id} plant={product} />
+                  <PlantCard 
+                    key={product.product_id} 
+                    plant={{
+                      id: product.product_id,
+                      name: product.name,
+                      category: getCategoryName(product.category),
+                      description: product.description || '',
+                      price: product.price,
+                      image: product.image_path || '/placeholder.svg',
+                      inStock: product.stock_quantity > 0,
+                      stock: product.stock_quantity
+                    }} 
+                  />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="mb-4 text-gray-400">
+                  <Search className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Không tìm thấy sản phẩm nào</h3>
+                <p className="text-gray-600 mb-6">Thử điều chỉnh bộ lọc để xem thêm sản phẩm</p>
+                <Button onClick={clearFilters}>Xóa bộ lọc</Button>
               </div>
             )}
           </div>

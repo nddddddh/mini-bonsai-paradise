@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
-import { ChevronLeft, ShoppingCart, Heart, Truck, Shield, RefreshCw } from "lucide-react";
+import { ChevronLeft, ShoppingCart, Truck, Shield, RefreshCw } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WishlistButton from "@/components/WishlistButton";
@@ -12,10 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/supabase";
 import { getCategoryName } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { ProductDetailProps } from "@/types/navigation";
 
-const ProductDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const ProductDetail = ({ navigate, productId }: ProductDetailProps) => {
   const { addItem } = useCart();
   const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
@@ -24,10 +21,10 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    if (id) {
+    if (productId) {
       fetchProduct();
     }
-  }, [id]);
+  }, [productId]);
 
   const fetchProduct = async () => {
     try {
@@ -35,7 +32,7 @@ const ProductDetail = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('product_id', parseInt(id!))
+        .eq('product_id', parseInt(productId!))
         .single();
 
       if (error) {
@@ -45,7 +42,7 @@ const ProductDetail = () => {
           description: "Sản phẩm không tồn tại",
           variant: "destructive",
         });
-        navigate('/products');
+        navigate('products');
         return;
       }
 
@@ -57,7 +54,7 @@ const ProductDetail = () => {
         description: "Không thể tải thông tin sản phẩm",
         variant: "destructive",
       });
-      navigate('/products');
+      navigate('products');
     } finally {
       setLoading(false);
     }
@@ -88,7 +85,7 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <p className="text-gray-500">Đang tải sản phẩm...</p>
@@ -102,13 +99,13 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar navigate={navigate} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <h2 className="text-2xl font-bold mb-4">Sản phẩm không tồn tại</h2>
-            <Link to="/products">
-              <Button>Quay lại danh sách sản phẩm</Button>
-            </Link>
+            <button onClick={() => navigate('products')}>
+              <button className="bg-blue-500 text-white px-4 py-2 rounded">Quay lại danh sách sản phẩm</button>
+            </button>
           </div>
         </div>
         <Footer />
@@ -116,33 +113,29 @@ const ProductDetail = () => {
     );
   }
 
-  // Use placeholder images if no image available
   const productImages = product.image_path ? [product.image_path] : ['/placeholder.svg'];
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      <Navbar navigate={navigate} />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-nature-600">Trang chủ</Link>
+          <button onClick={() => navigate('home')} className="hover:text-nature-600">Trang chủ</button>
           <span className="mx-2">/</span>
-          <Link to="/products" className="hover:text-nature-600">Sản phẩm</Link>
+          <button onClick={() => navigate('products')} className="hover:text-nature-600">Sản phẩm</button>
           <span className="mx-2">/</span>
           <span className="font-medium text-gray-700">{product.name}</span>
         </div>
 
-        {/* Back Button */}
-        <Link to="/products">
-          <Button variant="outline" className="mb-6 border-nature-500 text-nature-700 hover:bg-nature-50">
+        <button onClick={() => navigate('products')}>
+          <button className="mb-6 border border-nature-500 text-nature-700 hover:bg-nature-50 px-4 py-2 rounded flex items-center">
             <ChevronLeft className="w-4 h-4 mr-2" />
             Quay lại
-          </Button>
-        </Link>
+          </button>
+        </button>
 
         <div className="grid lg:grid-cols-2 gap-12">
-          {/* Product Images */}
           <div className="space-y-4">
             <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100">
               <img 
@@ -172,7 +165,6 @@ const ProductDetail = () => {
             )}
           </div>
 
-          {/* Product Info */}
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -198,7 +190,6 @@ const ProductDetail = () => {
               </p>
             </div>
 
-            {/* Quantity Selector */}
             <div>
               <h3 className="font-semibold mb-3">Số lượng</h3>
               <div className="flex items-center gap-3 mb-6">
@@ -222,7 +213,6 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex gap-4">
               <Button 
                 onClick={handleAddToCart} 
@@ -238,7 +228,6 @@ const ProductDetail = () => {
               />
             </div>
 
-            {/* Product Features */}
             <div className="grid grid-cols-1 gap-4 pt-6 border-t">
               <div className="flex items-center gap-3">
                 <Truck className="w-5 h-5 text-nature-600" />
