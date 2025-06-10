@@ -37,7 +37,7 @@ export const useOTP = () => {
 
       console.log('OTP sent successfully:', data);
       
-      // Show debug OTP in development
+      // Show success message
       if (data?.debug_otp) {
         toast({
           title: "Thành công",
@@ -46,7 +46,7 @@ export const useOTP = () => {
       } else {
         toast({
           title: "Thành công",
-          description: `Mã OTP đã được gửi đến ${email}`,
+          description: `Mã OTP đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư của bạn.`,
         });
       }
       
