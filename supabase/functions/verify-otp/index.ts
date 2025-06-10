@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log(`Verifying OTP for: ${email}, OTP: ${otp}`)
+
     // Verify OTP
     const { data: otpData, error: otpError } = await supabaseClient
       .from('otp_verifications')
@@ -41,9 +43,21 @@ Deno.serve(async (req) => {
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (otpError || !otpData) {
+    if (otpError) {
+      console.error('OTP query error:', otpError)
+      return new Response(
+        JSON.stringify({ error: 'Database error during OTP verification' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (!otpData) {
+      console.log('Invalid or expired OTP')
       return new Response(
         JSON.stringify({ error: 'Invalid or expired OTP' }),
         { 
@@ -62,6 +76,8 @@ Deno.serve(async (req) => {
     if (updateError) {
       console.error('Failed to mark OTP as used:', updateError)
     }
+
+    console.log(`OTP verified successfully for ${email}`)
 
     return new Response(
       JSON.stringify({ 

@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 export interface OTPResponse {
   message: string;
   email: string;
+  debug_otp?: string; // For testing purposes
 }
 
 export interface OTPError {
@@ -18,6 +19,8 @@ export const useOTP = () => {
   const sendOTP = async (email: string, action: string = 'register'): Promise<boolean> => {
     setLoading(true);
     try {
+      console.log('Sending OTP to:', email);
+      
       const { data, error } = await supabase.functions.invoke('send-otp', {
         body: { email, action }
       });
@@ -32,10 +35,21 @@ export const useOTP = () => {
         return false;
       }
 
-      toast({
-        title: "Thành công",
-        description: `Mã OTP đã được gửi đến ${email}`,
-      });
+      console.log('OTP sent successfully:', data);
+      
+      // Show debug OTP in development
+      if (data?.debug_otp) {
+        toast({
+          title: "Thành công",
+          description: `Mã OTP đã được gửi đến ${email}. (Debug: ${data.debug_otp})`,
+        });
+      } else {
+        toast({
+          title: "Thành công",
+          description: `Mã OTP đã được gửi đến ${email}`,
+        });
+      }
+      
       return true;
     } catch (error) {
       console.error('Error sending OTP:', error);
@@ -53,6 +67,8 @@ export const useOTP = () => {
   const verifyOTP = async (email: string, otp: string, action: string = 'register'): Promise<boolean> => {
     setLoading(true);
     try {
+      console.log('Verifying OTP for:', email, 'OTP:', otp);
+      
       const { data, error } = await supabase.functions.invoke('verify-otp', {
         body: { email, otp, action }
       });
@@ -67,6 +83,8 @@ export const useOTP = () => {
         return false;
       }
 
+      console.log('OTP verified successfully:', data);
+      
       toast({
         title: "Thành công",
         description: "Xác thực OTP thành công!",

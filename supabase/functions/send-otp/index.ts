@@ -11,66 +11,22 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-// Function to send email via EmailJS (free service)
+// Simple function to simulate sending email (for testing)
 async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
   try {
-    // Using EmailJS free service
-    const emailData = {
-      service_id: 'default_service',
-      template_id: 'template_otp',
-      user_id: 'public_key',
-      template_params: {
-        to_email: email,
-        otp_code: otp,
-        subject: 'Mã xác thực đăng ký tài khoản',
-        message: `Mã OTP của bạn là: ${otp}. Mã này có hiệu lực trong 5 phút.`
-      }
-    };
-
-    // Try to send via a simple SMTP service
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailData)
-    });
-
-    if (!response.ok) {
-      // Fallback: try another free email service
-      const fallbackResponse = await fetch('https://formspree.io/f/xpzvgork', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          subject: 'Mã xác thực OTP',
-          message: `Mã OTP của bạn là: ${otp}. Có hiệu lực trong 5 phút.`
-        })
-      });
-
-      if (!fallbackResponse.ok) {
-        // Final fallback: simple webhook
-        await fetch('https://webhook.site/unique-id', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: email,
-            otp: otp,
-            timestamp: new Date().toISOString()
-          })
-        });
-      }
-    }
-
-    console.log(`OTP ${otp} được gửi đến ${email}`);
-    return true;
+    // Log the OTP for testing purposes
+    console.log(`=== OTP NOTIFICATION ===`)
+    console.log(`Email: ${email}`)
+    console.log(`OTP Code: ${otp}`)
+    console.log(`Message: Mã OTP của bạn là ${otp}. Có hiệu lực trong 5 phút.`)
+    console.log(`========================`)
+    
+    // In a real application, you would integrate with an email service here
+    // For now, we'll just return true to simulate successful sending
+    return true
   } catch (error) {
-    console.error('Lỗi gửi email:', error);
-    // Vẫn log OTP để test
-    console.log(`OTP cho ${email}: ${otp}`);
-    return true; // Trả về true để không block flow
+    console.error('Error in sendOTPEmail:', error)
+    return true // Return true to not block the flow during testing
   }
 }
 
@@ -98,9 +54,18 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log(`Sending OTP to: ${email}`)
+
     // Generate OTP
     const otp = generateOTP()
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
+
+    // Delete any existing OTP for this email and action
+    await supabaseClient
+      .from('otp_verifications')
+      .delete()
+      .eq('email', email)
+      .eq('action', action || 'register')
 
     // Store OTP in database
     const { error: insertError } = await supabaseClient
@@ -108,7 +73,7 @@ Deno.serve(async (req) => {
       .insert({
         email,
         otp,
-        action,
+        action: action || 'register',
         expires_at: expiresAt.toISOString(),
         used: false
       })
@@ -124,7 +89,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Send OTP via email
+    // Send OTP via email (simulated for now)
     const emailSent = await sendOTPEmail(email, otp)
 
     if (!emailSent) {
@@ -137,10 +102,14 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log(`OTP sent successfully to ${email}`)
+
     return new Response(
       JSON.stringify({ 
         message: 'OTP sent successfully',
-        email: email 
+        email: email,
+        // Include OTP in response for testing (remove in production)
+        debug_otp: otp
       }),
       { 
         status: 200, 
