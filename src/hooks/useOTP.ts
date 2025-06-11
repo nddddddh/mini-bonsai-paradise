@@ -24,18 +24,21 @@ async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
   try {
     console.log('Sending OTP via EmailJS:', email, otp);
     
+    // Initialize EmailJS if not already done
+    emailjs.init('qjPi8jjZLDyY03y9S');
+    
     const templateParams = {
       to_email: email,
+      to_name: email.split('@')[0], // Extract name from email
       otp_code: otp,
-      message: `Mã OTP của bạn là: ${otp}`,
-      subject: 'Mã xác thực đăng ký tài khoản'
+      message: `Mã OTP của bạn là: ${otp}. Mã này có hiệu lực trong 5 phút.`,
+      subject: 'Mã xác thực đăng ký tài khoản Green Garden'
     };
 
     const result = await emailjs.send(
       'service_erfd1nj',     // Service ID
       'template_4eol7kv',    // Template ID
-      templateParams,
-      'qjPi8jjZLDyY03y9S'    // User ID
+      templateParams
     );
 
     console.log('EmailJS result:', result);
@@ -93,7 +96,7 @@ export const useOTP = () => {
         console.log('Email sending failed');
         toast({
           title: "Lỗi",
-          description: "Không thể gửi email OTP. Vui lòng thử lại.",
+          description: "Không thể gửi email OTP. Vui lòng kiểm tra lại email hoặc thử lại sau.",
           variant: "destructive",
         });
         return false;
