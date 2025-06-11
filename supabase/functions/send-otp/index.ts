@@ -1,5 +1,4 @@
 
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
@@ -15,11 +14,11 @@ function generateOTP(): string {
 // Function to send OTP via email using EmailJS
 async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
   try {
-    // Using EmailJS public API - no API key needed, just service setup
+    // Using your EmailJS configuration
     const emailData = {
-      service_id: 'default_service',
-      template_id: 'template_otp',
-      user_id: 'your_emailjs_user_id', // You can get this from EmailJS dashboard
+      service_id: 'service_erfd1nj',
+      template_id: 'template_4eol7kv',
+      user_id: 'qjPi8jjZLDyY03y9S',
       template_params: {
         to_email: email,
         otp_code: otp,
@@ -40,49 +39,15 @@ async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
       console.log('Email sent successfully via EmailJS')
       return true
     } else {
-      console.log('EmailJS failed, using alternative method')
-      
-      // Alternative: Use a simple webhook service like Formspree or similar
-      const webhookData = {
-        email: email,
-        subject: 'Mã xác thực đăng ký tài khoản',
-        message: `
-          Xin chào,
-          
-          Mã OTP của bạn là: ${otp}
-          
-          Mã này có hiệu lực trong 5 phút.
-          
-          Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.
-        `
-      }
-
-      // You can replace this with your own webhook URL or email service
-      const webhookResponse = await fetch('https://formspree.io/f/your-form-id', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData)
-      })
-
-      if (webhookResponse.ok) {
-        console.log('Email sent successfully via webhook')
-        return true
-      }
+      console.log('EmailJS failed with status:', response.status)
+      const errorText = await response.text()
+      console.log('Error response:', errorText)
+      return false
     }
-
-    // If all methods fail, still return true for testing but log it
-    console.log('All email methods failed, but continuing for testing')
-    console.log('Email would be sent to:', email)
-    console.log('OTP code:', otp)
-    return true
     
   } catch (error) {
     console.error('Error in sendOTPEmail:', error)
-    // Don't fail the request even if email fails
-    console.log('Email sending failed, but OTP is still generated for testing')
-    return true
+    return false
   }
 }
 
@@ -148,14 +113,23 @@ Deno.serve(async (req) => {
     // Send OTP via email
     const emailSent = await sendOTPEmail(email, otp)
 
-    console.log(`OTP generated successfully for ${email}`)
+    if (!emailSent) {
+      console.log('Email sending failed')
+      return new Response(
+        JSON.stringify({ error: 'Failed to send OTP email' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    console.log(`OTP sent successfully to ${email}`)
 
     return new Response(
       JSON.stringify({ 
         message: 'OTP sent successfully',
-        email: email,
-        // Show OTP in response for testing
-        debug_otp: otp
+        email: email
       }),
       { 
         status: 200, 
@@ -174,4 +148,3 @@ Deno.serve(async (req) => {
     )
   }
 })
-
