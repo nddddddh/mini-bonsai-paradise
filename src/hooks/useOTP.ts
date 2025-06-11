@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import emailjs from '@emailjs/browser';
 
 export interface OTPResponse {
   message: string;
@@ -13,42 +14,97 @@ export interface OTPError {
   error: string;
 }
 
+// Function to generate a 6-digit OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+// Function to send OTP via email using EmailJS from frontend
+async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
+  try {
+    console.log('Sending OTP via EmailJS:', email, otp);
+    
+    const templateParams = {
+      to_email: email,
+      otp_code: otp,
+      message: `Mã OTP của bạn là: ${otp}`,
+      subject: 'Mã xác thực đăng ký tài khoản'
+    };
+
+    const result = await emailjs.send(
+      'service_erfd1nj',     // Service ID
+      'template_4eol7kv',    // Template ID
+      templateParams,
+      'qjPi8jjZLDyY03y9S'    // User ID
+    );
+
+    console.log('EmailJS result:', result);
+    return result.status === 200;
+  } catch (error) {
+    console.error('EmailJS error:', error);
+    return false;
+  }
+}
+
 export const useOTP = () => {
   const [loading, setLoading] = useState(false);
 
   const sendOTP = async (email: string, action: string = 'register'): Promise<boolean> => {
     setLoading(true);
     try {
-      console.log('Sending OTP to:', email);
+      console.log('Generating OTP for:', email);
       
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { email, action }
-      });
+      // Generate OTP locally
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
-      if (error) {
-        console.error('Error sending OTP:', error);
+      // Delete any existing OTP for this email and action
+      await supabase
+        .from('otp_verifications')
+        .delete()
+        .eq('email', email)
+        .eq('action', action);
+
+      // Store OTP in database
+      const { error: insertError } = await supabase
+        .from('otp_verifications')
+        .insert({
+          email,
+          otp,
+          action: action,
+          expires_at: expiresAt.toISOString(),
+          used: false
+        });
+
+      if (insertError) {
+        console.error('Database error:', insertError);
         toast({
           title: "Lỗi",
-          description: "Không thể gửi mã OTP. Vui lòng thử lại.",
+          description: "Không thể tạo mã OTP. Vui lòng thử lại.",
           variant: "destructive",
         });
         return false;
       }
 
-      console.log('OTP sent successfully:', data);
-      
-      // Show success message
-      if (data?.debug_otp) {
+      // Send OTP via EmailJS
+      const emailSent = await sendOTPEmail(email, otp);
+
+      if (!emailSent) {
+        console.log('Email sending failed');
         toast({
-          title: "Thành công",
-          description: `Mã OTP đã được gửi đến ${email}. (Debug: ${data.debug_otp})`,
+          title: "Lỗi",
+          description: "Không thể gửi email OTP. Vui lòng thử lại.",
+          variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Thành công",
-          description: `Mã OTP đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư của bạn.`,
-        });
+        return false;
       }
+
+      console.log('OTP sent successfully to:', email);
+      
+      toast({
+        title: "Thành công",
+        description: `Mã OTP đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư của bạn.`,
+      });
       
       return true;
     } catch (error) {
