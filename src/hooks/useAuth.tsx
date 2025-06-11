@@ -7,6 +7,7 @@ interface AuthContextType {
   user: Account | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   isAdmin: () => boolean;
 }
@@ -32,7 +33,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('user');
       }
     }
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
+      
+      if (session?.user) {
+        // Check if user exists in accounts table
+        const { data: accountData, error } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('email', session.user.email)
+          .single();
+
+        if (accountData) {
+          setUser(accountData);
+          localStorage.setItem('user', JSON.stringify(accountData));
+        } else if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
+          // Create new account for Google user
+          const { data: newAccount, error: insertError } = await supabase
+            .from('accounts')
+            .insert({
+              email: session.user.email!,
+              full_name: session.user.user_metadata.full_name || session.user.user_metadata.name || '',
+              username: session.user.email!.split('@')[0],
+              password_hash: '', // Google users don't have password
+              role: 1 // Customer role
+            })
+            .select()
+            .single();
+
+          if (newAccount) {
+            setUser(newAccount);
+            localStorage.setItem('user', JSON.stringify(newAccount));
+          }
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem('user');
+      }
+    });
+
     setLoading(false);
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -69,8 +113,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const loginWithGoogle = async (): Promise<boolean> => {
+    try {
+      console.log('Attempting Google login...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        console.error('Google login error:', error);
+        return false;
+      }
+
+      console.log('Google login initiated:', data);
+      return true;
+    } catch (error) {
+      console.error('Google login error:', error);
+      return false;
+    }
+  };
+
   const logout = () => {
     console.log('Logging out user');
+    supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('user');
   };
@@ -84,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   console.log('AuthProvider rendering, user:', user, 'loading:', loading);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
