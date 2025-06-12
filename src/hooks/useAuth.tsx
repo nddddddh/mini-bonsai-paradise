@@ -38,51 +38,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
-      if (session?.user) {
-        console.log('Session user found:', session.user);
+      if (session?.user && event === 'SIGNED_IN') {
+        console.log('User signed in:', session.user);
         
-        // Check if user exists in accounts table
-        const { data: accountData, error } = await supabase
-          .from('accounts')
-          .select('*')
-          .eq('email', session.user.email)
-          .single();
-
-        console.log('Account lookup result:', { accountData, error });
-
-        if (accountData) {
-          console.log('Setting existing user:', accountData);
-          setUser(accountData);
-          localStorage.setItem('user', JSON.stringify(accountData));
-        } else if (!error || error.code === 'PGRST116') {
-          // User doesn't exist in accounts table, create new account
-          console.log('Creating new account for Google user');
-          const { data: newAccount, error: insertError } = await supabase
+        try {
+          // Check if user exists in accounts table
+          const { data: accountData, error } = await supabase
             .from('accounts')
-            .insert({
-              email: session.user.email!,
-              full_name: session.user.user_metadata.full_name || session.user.user_metadata.name || '',
-              username: session.user.email!.split('@')[0],
-              password_hash: '', // Google users don't have password
-              role: 1 // Customer role
-            })
-            .select()
-            .single();
+            .select('*')
+            .eq('email', session.user.email)
+            .maybeSingle();
 
-          console.log('New account creation result:', { newAccount, insertError });
+          console.log('Account lookup result:', { accountData, error });
 
-          if (newAccount && !insertError) {
-            console.log('Setting new user:', newAccount);
-            setUser(newAccount);
-            localStorage.setItem('user', JSON.stringify(newAccount));
+          if (accountData) {
+            console.log('Setting existing user:', accountData);
+            setUser(accountData);
+            localStorage.setItem('user', JSON.stringify(accountData));
           } else {
-            console.error('Failed to create account:', insertError);
+            // User doesn't exist in accounts table, create new account
+            console.log('Creating new account for user:', session.user.email);
+            const { data: newAccount, error: insertError } = await supabase
+              .from('accounts')
+              .insert({
+                email: session.user.email!,
+                full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+                username: session.user.email!.split('@')[0],
+                password_hash: '', // OAuth users don't have password
+                role: 1 // Customer role
+              })
+              .select()
+              .single();
+
+            console.log('New account creation result:', { newAccount, insertError });
+
+            if (newAccount && !insertError) {
+              console.log('Setting new user:', newAccount);
+              setUser(newAccount);
+              localStorage.setItem('user', JSON.stringify(newAccount));
+            } else {
+              console.error('Failed to create account:', insertError);
+            }
           }
-        } else {
-          console.error('Database error:', error);
+        } catch (error) {
+          console.error('Error handling authentication:', error);
         }
-      } else {
-        console.log('No session user, clearing state');
+      } else if (!session) {
+        console.log('No session, clearing user state');
         setUser(null);
         localStorage.removeItem('user');
       }
@@ -90,21 +92,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    // Also check for current session immediately
+    // Check for current session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
-        setLoading(false);
-        return;
       }
       
-      if (session?.user) {
-        console.log('Current session found:', session.user);
-        // The onAuthStateChange will handle this
-      } else {
-        console.log('No current session');
+      if (!session) {
         setLoading(false);
       }
+      // If there is a session, onAuthStateChange will handle it
     });
 
     return () => subscription.unsubscribe();
