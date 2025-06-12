@@ -38,33 +38,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
-      if (session?.user && event === 'SIGNED_IN') {
-        console.log('User signed in:', session.user);
+      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        console.log('User signed in or token refreshed:', session.user);
         
         try {
           // Check if user exists in accounts table
-          const { data: accountData, error } = await supabase
+          const { data: accountData, error: selectError } = await supabase
             .from('accounts')
             .select('*')
             .eq('email', session.user.email)
             .maybeSingle();
 
-          console.log('Account lookup result:', { accountData, error });
+          console.log('Account lookup result:', { accountData, error: selectError });
 
           if (accountData) {
             console.log('Setting existing user:', accountData);
             setUser(accountData);
             localStorage.setItem('user', JSON.stringify(accountData));
-          } else {
-            // User doesn't exist in accounts table, create new account
+          } else if (!selectError) {
+            // User doesn't exist, create new account
             console.log('Creating new account for user:', session.user.email);
+            
+            const userData = session.user.user_metadata || {};
+            const fullName = userData.full_name || userData.name || '';
+            const username = session.user.email?.split('@')[0] || '';
+            
             const { data: newAccount, error: insertError } = await supabase
               .from('accounts')
               .insert({
                 email: session.user.email!,
-                full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
-                username: session.user.email!.split('@')[0],
-                password_hash: '', // OAuth users don't have password
+                full_name: fullName,
+                username: username,
+                password_hash: '', // OAuth users don't need password
                 role: 1 // Customer role
               })
               .select()
@@ -79,12 +84,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
               console.error('Failed to create account:', insertError);
             }
+          } else {
+            console.error('Database error:', selectError);
           }
         } catch (error) {
           console.error('Error handling authentication:', error);
         }
-      } else if (!session) {
-        console.log('No session, clearing user state');
+      } else if (event === 'SIGNED_OUT' || !session) {
+        console.log('User signed out or no session, clearing user state');
         setUser(null);
         localStorage.removeItem('user');
       }
