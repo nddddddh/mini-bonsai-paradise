@@ -4,7 +4,7 @@ import { Facebook } from 'lucide-react';
 
 const FloatingFacebookIcon = () => {
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 left-6 z-50">
       <a
         href="https://www.facebook.com/thaiduong.le.123276"
         target="_blank"
@@ -22,10 +22,10 @@ const FloatingFacebookIcon = () => {
       </a>
       
       {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+      <div className="absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
         <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
           Theo dõi Facebook
-          <div className="absolute top-full right-2 w-0 h-0 border-l-2 border-r-2 border-t-4 border-transparent border-t-gray-900"></div>
+          <div className="absolute top-full left-2 w-0 h-0 border-l-2 border-r-2 border-t-4 border-transparent border-t-gray-900"></div>
         </div>
       </div>
     </div>
