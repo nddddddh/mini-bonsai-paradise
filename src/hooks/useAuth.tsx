@@ -19,8 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log('AuthProvider initializing...');
-    
-    // Check if user is logged in from localStorage
+
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -33,15 +32,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
-      
+
       if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         console.log('User signed in with email:', session.user.email);
-        
+
         try {
-          // Kiểm tra xem email đã tồn tại trong bảng accounts chưa
           const { data: existingAccount, error: selectError } = await supabase
             .from('accounts')
             .select('*')
@@ -51,23 +48,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('Checking existing account:', { existingAccount, selectError });
 
           if (existingAccount) {
-            // Email đã tồn tại, sử dụng account hiện tại
             console.log('Email exists, using existing account:', existingAccount);
             setUser(existingAccount);
             localStorage.setItem('user', JSON.stringify(existingAccount));
           } else {
-            // Email không trùng, tạo account mới
             console.log('Email not found, creating new account for:', session.user.email);
-            
+
             const newAccountData = {
               email: session.user.email!,
-              full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
-              username: '', // để trống như yêu cầu
-              phone: '', // để trống như yêu cầu  
-              address: '', // để trống như yêu cầu
-              password_hash: 'google_oauth', // fix mật khẩu cho OAuth
-              role: 0, // role = 0 như yêu cầu
-              created_at: new Date().toISOString() // thời gian đăng nhập đầu tiên
+              full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Google User',
+              username: session.user.email?.split('@')[0] || 'googleuser',
+              phone: null,
+              address: null,
+              password_hash: 'google_oauth',
+              role: 0
             };
 
             const { data: newAccount, error: insertError } = await supabase
@@ -94,16 +88,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         localStorage.removeItem('user');
       }
-      
+
       setLoading(false);
     });
 
-    // Check for current session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
       }
-      
+
       if (!session) {
         setLoading(false);
       }
@@ -115,7 +108,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('Attempting login for:', email);
-      
+
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
@@ -133,9 +126,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('User found:', data);
-      
-      // In a real app, you would verify the password hash here
-      // For demo purposes, we'll accept any password for existing users
+
+      // WARNING: Password not validated in this demo
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       console.log('Login successful, user set:', data);
@@ -149,8 +141,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
       console.log('Starting Google login...');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
+
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/`
