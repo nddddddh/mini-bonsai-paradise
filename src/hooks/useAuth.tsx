@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Account } from '@/types/supabase';
@@ -39,59 +38,59 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed:', event, session);
       
       if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        console.log('User signed in or token refreshed:', session.user);
+        console.log('User signed in with email:', session.user.email);
         
         try {
-          // Check if user exists in accounts table
-          const { data: accountData, error: selectError } = await supabase
+          // Kiểm tra xem email đã tồn tại trong bảng accounts chưa
+          const { data: existingAccount, error: selectError } = await supabase
             .from('accounts')
             .select('*')
             .eq('email', session.user.email)
             .maybeSingle();
 
-          console.log('Account lookup result:', { accountData, error: selectError });
+          console.log('Checking existing account:', { existingAccount, selectError });
 
-          if (accountData) {
-            console.log('Setting existing user:', accountData);
-            setUser(accountData);
-            localStorage.setItem('user', JSON.stringify(accountData));
-          } else if (!selectError) {
-            // User doesn't exist, create new account
-            console.log('Creating new account for user:', session.user.email);
+          if (existingAccount) {
+            // Email đã tồn tại, sử dụng account hiện tại
+            console.log('Email exists, using existing account:', existingAccount);
+            setUser(existingAccount);
+            localStorage.setItem('user', JSON.stringify(existingAccount));
+          } else {
+            // Email không trùng, tạo account mới
+            console.log('Email not found, creating new account for:', session.user.email);
             
-            const userData = session.user.user_metadata || {};
-            const fullName = userData.full_name || userData.name || '';
-            const username = session.user.email?.split('@')[0] || '';
-            
+            const newAccountData = {
+              email: session.user.email!,
+              full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+              username: '', // để trống như yêu cầu
+              phone: '', // để trống như yêu cầu  
+              address: '', // để trống như yêu cầu
+              password_hash: 'google_oauth', // fix mật khẩu cho OAuth
+              role: 0, // role = 0 như yêu cầu
+              created_at: new Date().toISOString() // thời gian đăng nhập đầu tiên
+            };
+
             const { data: newAccount, error: insertError } = await supabase
               .from('accounts')
-              .insert({
-                email: session.user.email!,
-                full_name: fullName,
-                username: username,
-                password_hash: '', // OAuth users don't need password
-                role: 1 // Customer role
-              })
+              .insert(newAccountData)
               .select()
               .single();
 
             console.log('New account creation result:', { newAccount, insertError });
 
             if (newAccount && !insertError) {
-              console.log('Setting new user:', newAccount);
+              console.log('Successfully created new account:', newAccount);
               setUser(newAccount);
               localStorage.setItem('user', JSON.stringify(newAccount));
             } else {
-              console.error('Failed to create account:', insertError);
+              console.error('Failed to create new account:', insertError);
             }
-          } else {
-            console.error('Database error:', selectError);
           }
         } catch (error) {
-          console.error('Error handling authentication:', error);
+          console.error('Error during Google login process:', error);
         }
       } else if (event === 'SIGNED_OUT' || !session) {
-        console.log('User signed out or no session, clearing user state');
+        console.log('User signed out, clearing state');
         setUser(null);
         localStorage.removeItem('user');
       }
@@ -108,7 +107,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!session) {
         setLoading(false);
       }
-      // If there is a session, onAuthStateChange will handle it
     });
 
     return () => subscription.unsubscribe();
@@ -150,7 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
-      console.log('Attempting Google login...');
+      console.log('Starting Google login...');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -164,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
 
-      console.log('Google login initiated:', data);
+      console.log('Google login initiated successfully');
       return true;
     } catch (error) {
       console.error('Google login error:', error);
