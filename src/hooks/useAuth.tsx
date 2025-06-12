@@ -39,6 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed:', event, session);
       
       if (session?.user) {
+        console.log('Session user found:', session.user);
+        
         // Check if user exists in accounts table
         const { data: accountData, error } = await supabase
           .from('accounts')
@@ -46,11 +48,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('email', session.user.email)
           .single();
 
+        console.log('Account lookup result:', { accountData, error });
+
         if (accountData) {
+          console.log('Setting existing user:', accountData);
           setUser(accountData);
           localStorage.setItem('user', JSON.stringify(accountData));
-        } else if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
-          // Create new account for Google user
+        } else if (!error || error.code === 'PGRST116') {
+          // User doesn't exist in accounts table, create new account
+          console.log('Creating new account for Google user');
           const { data: newAccount, error: insertError } = await supabase
             .from('accounts')
             .insert({
@@ -63,18 +69,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .select()
             .single();
 
-          if (newAccount) {
+          console.log('New account creation result:', { newAccount, insertError });
+
+          if (newAccount && !insertError) {
+            console.log('Setting new user:', newAccount);
             setUser(newAccount);
             localStorage.setItem('user', JSON.stringify(newAccount));
+          } else {
+            console.error('Failed to create account:', insertError);
           }
+        } else {
+          console.error('Database error:', error);
         }
       } else {
+        console.log('No session user, clearing state');
         setUser(null);
         localStorage.removeItem('user');
       }
+      
+      setLoading(false);
     });
 
-    setLoading(false);
+    // Also check for current session immediately
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+      
+      if (session?.user) {
+        console.log('Current session found:', session.user);
+        // The onAuthStateChange will handle this
+      } else {
+        console.log('No current session');
+        setLoading(false);
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, []);
