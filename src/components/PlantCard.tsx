@@ -2,8 +2,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/useAuth";
 import { ShoppingCart } from "lucide-react";
 import { Product, getCategoryName } from "@/types/database";
+import { useToast } from "@/components/ui/use-toast";
 
 // Legacy interface for backward compatibility
 export interface Plant {
@@ -22,6 +24,8 @@ interface PlantCardProps {
 
 const PlantCard = ({ plant }: PlantCardProps) => {
   const { addItem } = useCart();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   // Convert Product to Plant format for backward compatibility
   const convertToPlant = (product: Product | Plant): Plant => {
@@ -41,6 +45,14 @@ const PlantCard = ({ plant }: PlantCardProps) => {
   const plantData = convertToPlant(plant);
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({
+        title: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
+        variant: "destructive",
+      });
+      return;
+    }
     addItem(plantData);
   };
 
@@ -79,7 +91,7 @@ const PlantCard = ({ plant }: PlantCardProps) => {
             disabled={plantData.stock <= 0}
           >
             <ShoppingCart className="w-4 h-4" />
-            {plantData.stock > 0 ? 'Thêm vào giỏ' : 'Hết hàng'}
+            {plantData.stock > 0 ? (user ? 'Thêm vào giỏ' : 'Đăng nhập để mua') : 'Hết hàng'}
           </Button>
         </div>
       </div>

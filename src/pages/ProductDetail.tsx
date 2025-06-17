@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/useAuth";
 import { ChevronLeft, ShoppingCart, Heart, Truck, Shield, RefreshCw } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,6 +17,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,15 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
+    
+    if (!user) {
+      toast({
+        title: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const cartItem = {
       id: product.product_id,
@@ -230,7 +240,7 @@ const ProductDetail = () => {
                 disabled={product.stock_quantity <= 0}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                {product.stock_quantity > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                {product.stock_quantity > 0 ? (user ? 'Thêm vào giỏ hàng' : 'Đăng nhập để mua') : 'Hết hàng'}
               </Button>
               <WishlistButton 
                 productId={product.product_id} 

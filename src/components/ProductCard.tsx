@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product, getCategoryName } from '@/types/database';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
@@ -16,11 +17,22 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
+  const { user } = useAuth();
   const { toast } = useToast();
   const isFavorite = state.favorites.includes(product.product_id.toString());
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Convert Product to the format expected by the cart
     const cartProduct = {
       id: product.product_id.toString(),
@@ -99,7 +111,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           disabled={(product.stock_quantity || 0) === 0}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Thêm vào giỏ
+          {(product.stock_quantity || 0) > 0 ? (user ? 'Thêm vào giỏ' : 'Đăng nhập để mua') : 'Hết hàng'}
         </Button>
       </CardFooter>
     </Card>
