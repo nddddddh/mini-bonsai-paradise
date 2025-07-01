@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingFacebookIcon from "@/components/FloatingFacebookIcon";
+import FloatingAI from "@/components/FloatingAI";
 import PlantCard from "@/components/PlantCard";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Leaf, Shield, Truck } from "lucide-react";
@@ -233,8 +233,9 @@ const Index = () => {
 
       <Footer />
       
-      {/* Floating Facebook Icon */}
+      {/* Floating Icons */}
       <FloatingFacebookIcon />
+      <FloatingAI />
     </div>
   );
 };
