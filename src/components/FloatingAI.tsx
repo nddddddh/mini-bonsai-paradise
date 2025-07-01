@@ -4,35 +4,77 @@ import { Bot, X, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+
+interface Message {
+  type: 'user' | 'ai';
+  content: string;
+  isLoading?: boolean;
+}
 
 const FloatingAI = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { type: 'ai', content: 'Xin chào! Tôi là AI hỗ trợ của BonsaiHub. Tôi có thể giúp gì cho bạn?' }
+  const [messages, setMessages] = useState<Message[]>([
+    { type: 'ai', content: 'Xin chào! Tôi là AI hỗ trợ của BonsaiHub. Tôi có thể giúp gì cho bạn về cây cảnh?' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
-    // Add user message
-    const userMessage = { type: 'user', content: inputMessage };
-    setMessages(prev => [...prev, userMessage]);
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = { 
-        type: 'ai', 
-        content: 'Cảm ơn bạn đã liên hệ! Hiện tại tôi đang trong giai đoạn phát triển. Bạn có thể liên hệ qua Facebook hoặc điện thoại để được hỗ trợ tốt nhất.' 
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-
+    const userMessage = inputMessage.trim();
     setInputMessage('');
+    
+    // Add user message
+    setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
+    
+    // Add loading message
+    setMessages(prev => [...prev, { type: 'ai', content: 'Đang suy nghĩ...', isLoading: true }]);
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: { message: userMessage }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Remove loading message and add AI response
+      setMessages(prev => {
+        const newMessages = prev.filter(msg => !msg.isLoading);
+        return [...newMessages, { type: 'ai', content: data.response }];
+      });
+
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      
+      // Remove loading message and add error message
+      setMessages(prev => {
+        const newMessages = prev.filter(msg => !msg.isLoading);
+        return [...newMessages, { 
+          type: 'ai', 
+          content: 'Xin lỗi, tôi gặp sự cố kỹ thuật. Bạn có thể liên hệ qua Facebook hoặc điện thoại để được hỗ trợ tốt nhất.' 
+        }];
+      });
+
+      toast({
+        title: "Lỗi",
+        description: "Không thể kết nối với AI. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSendMessage();
     }
   };
@@ -70,6 +112,8 @@ const FloatingAI = () => {
                     className={`max-w-[80%] p-3 rounded-lg text-sm ${
                       message.type === 'user'
                         ? 'bg-nature-600 text-white'
+                        : message.isLoading
+                        ? 'bg-gray-100 text-gray-600 animate-pulse'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
@@ -87,11 +131,13 @@ const FloatingAI = () => {
                   onKeyPress={handleKeyPress}
                   placeholder="Nhập tin nhắn..."
                   className="flex-1"
+                  disabled={isLoading}
                 />
                 <Button
                   onClick={handleSendMessage}
                   size="sm"
                   className="bg-nature-600 hover:bg-nature-700"
+                  disabled={isLoading || !inputMessage.trim()}
                 >
                   <Send className="w-4 h-4" />
                 </Button>
