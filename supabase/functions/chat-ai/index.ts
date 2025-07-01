@@ -16,8 +16,32 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    console.log('Chat AI function called');
+    
+    // Check if API key exists
+    if (!openAIApiKey) {
+      console.error('OpenAI API key not found');
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key không được cấu hình. Vui lòng liên hệ admin.' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
+    const { message } = await req.json();
+    console.log('Received message:', message);
+
+    if (!message) {
+      return new Response(JSON.stringify({ 
+        error: 'Tin nhắn không được để trống' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Calling OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -38,12 +62,17 @@ serve(async (req) => {
       }),
     });
 
-    const data = await response.json();
-    
+    console.log('OpenAI response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Lỗi gọi OpenAI API');
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(errorData.error?.message || 'Lỗi gọi OpenAI API');
     }
 
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    
     const aiResponse = data.choices[0].message.content;
 
     return new Response(JSON.stringify({ response: aiResponse }), {

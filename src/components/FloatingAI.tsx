@@ -36,9 +36,13 @@ const FloatingAI = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending message to AI:', userMessage);
+      
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: { message: userMessage }
       });
+
+      console.log('AI response:', data, 'Error:', error);
 
       if (error) {
         throw error;
